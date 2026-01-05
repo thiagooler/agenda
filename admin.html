@@ -4,240 +4,279 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Admin Studio NBV</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    
     <style>
-        :root { --primary: #007bff; --danger: #dc3545; --bg: #f4f7f6; --sidebar-w: 260px; --header-h: 60px; }
+        :root { 
+            --primary: #4f46e5; /* Índigo Moderno */
+            --primary-light: #e0e7ff;
+            --danger: #ef4444; 
+            --success: #22c55e;
+            --bg: #f3f4f6; 
+            --sidebar-w: 260px; 
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        body { 
+            margin: 0; padding: 0; background: var(--bg); color: var(--text-main);
+            font-family: 'Inter', sans-serif; 
+            height: 100vh; display: flex; flex-direction: column; overflow: hidden; 
+        }
 
-        /* --- LAYOUT GERAL --- */
+        /* --- SIDEBAR & NAV (Desktop) --- */
+        .navbar {
+            position: fixed; bottom: 0; width: 100%; height: 70px; background: white; 
+            display: flex; justify-content: space-around; align-items: center; 
+            border-top: 1px solid #e5e7eb; z-index: 1000;
+        }
+
+        .nav-brand { display: none; } /* Só aparece no desktop */
+
+        .nav-item { 
+            flex: 1; text-align: center; padding: 10px; color: var(--text-muted); 
+            font-size: 0.75rem; cursor: pointer; transition: 0.2s; border-radius: 8px;
+        }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+
+        /* --- LAYOUT PRINCIPAL --- */
         .main-container { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
         
         .tab-content { 
-            display: none; 
-            flex: 1; 
-            overflow-y: auto; 
-            padding: 15px; 
-            padding-bottom: 90px; /* Espaço para menu mobile */
-            max-width: 100%;
+            display: none; flex: 1; overflow-y: auto; padding: 20px; 
+            padding-bottom: 90px; /* Espaço Mobile */
         }
-        .tab-content.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab-content.active { display: block; animation: fadeUp 0.3s ease-out; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* HEADER MOBILE */
-        .mobile-header { background: white; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: block; }
-        
-        /* NAVBAR (Menu) */
-        .navbar { 
-            position: fixed; bottom: 0; width: 100%; height: 70px; 
-            background: white; display: flex; justify-content: space-around; align-items: center; 
-            border-top: 1px solid #ddd; z-index: 1000; 
-            transition: 0.3s;
+        /* --- HEADER E TÍTULOS --- */
+        h2 { font-weight: 700; color: #111827; margin: 0 0 20px 0; font-size: 1.5rem; letter-spacing: -0.025em; }
+        .mobile-header { background: white; padding: 15px; text-align: center; font-weight: 700; border-bottom: 1px solid #eee; }
+
+        /* --- CARDS & UI --- */
+        .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 20px; border: 1px solid #f3f4f6; }
+
+        /* --- BARRA DE FERRAMENTAS (Filtro/Busca) --- */
+        .toolbar { 
+            background: white; padding: 15px; border-radius: var(--radius); 
+            box-shadow: var(--shadow); margin-bottom: 20px; 
+            display: flex; flex-direction: column; gap: 10px;
         }
-        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; font-size: 0.75rem; cursor: pointer; border-radius: 8px; transition: 0.2s; }
-        .nav-item:hover { background-color: #f8f9fa; }
-        .nav-item.active { color: var(--primary); font-weight: bold; }
-        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
 
-        /* ESTILOS COMUNS */
-        h2 { margin-top: 0; color: #34495e; font-size: 1.5rem; margin-bottom: 20px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; }
+        .view-toggles { display: flex; gap: 5px; }
+        .view-btn { 
+            padding: 8px 12px; border: 1px solid #ddd; background: #fff; 
+            border-radius: 6px; cursor: pointer; font-size: 1.2rem;
+        }
+        .view-btn.active { background: var(--primary-light); color: var(--primary); border-color: var(--primary); }
 
-        /* FORMULÁRIO */
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
-        input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
-        
-        .btn-action { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
-        .btn-action:active { transform: scale(0.98); }
+        input, select, textarea { 
+            width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; 
+            font-size: 0.95rem; background: #f9fafb; transition: 0.2s; 
+            font-family: 'Inter', sans-serif;
+        }
+        input:focus, select:focus { border-color: var(--primary); background: white; outline: none; }
+
+        /* --- BOTÕES --- */
+        .btn-action { 
+            width: 100%; padding: 12px; border: none; border-radius: 8px; 
+            font-weight: 600; cursor: pointer; transition: 0.2s; 
+        }
         .btn-save { background: var(--primary); color: white; }
+        .btn-save:hover { background: #4338ca; }
         .btn-delete { background: var(--danger); color: white; }
+        .btn-clean { background: #f3f4f6; color: #4b5563; }
 
-        /* MODAL */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
+        /* --- CALENDÁRIO ESTILIZADO --- */
+        #calendar { background: white; padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); }
+        .fc-toolbar-title { font-size: 1.2rem !important; font-weight: 700; }
+        .fc-button-primary { background-color: var(--primary) !important; border: none !important; }
+
+        /* --- LISTA DE EVENTOS (Grade vs Lista) --- */
+        .events-container { display: grid; gap: 15px; }
+        
+        /* MODO GRADE (Padrão) */
+        .events-container.grid { grid-template-columns: 1fr; }
+        
+        /* MODO LISTA */
+        .events-container.list .event-card { 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 12px 20px; border-left-width: 4px;
+        }
+
+        .event-card { 
+            background: white; border-radius: 10px; padding: 15px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 5px solid var(--primary); 
+            cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; position: relative;
+        }
+        .event-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        
+        .badge { 
+            display: inline-block; padding: 4px 8px; border-radius: 20px; 
+            font-size: 0.7rem; font-weight: 700; text-transform: uppercase; margin-bottom: 5px;
+        }
+        .badge.atend { background: #fef3c7; color: #d97706; }
+        .badge.block { background: #fee2e2; color: #dc2626; }
+
+        /* --- MODAL --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; backdrop-filter: blur(2px); }
         .modal-overlay.open { display: flex; }
         .modal-content { background: white; width: 100%; max-height: 90vh; border-radius: 20px 20px 0 0; padding: 30px; animation: slideUp 0.3s; overflow-y: auto; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        /* LISTA EVENTOS */
-        .event-card { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; border-left: 5px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s; cursor: pointer; }
-        .event-card:hover { transform: translateY(-2px); }
 
         /* =========================================
-           DESKTOP & ULTRAWIDE (TELA GRANDE)
+           DESKTOP & ULTRAWIDE
            ========================================= */
         @media (min-width: 1024px) {
             body { flex-direction: row; }
             
-            /* Menu vira Lateral */
+            /* Sidebar Moderno */
             .navbar { 
                 position: relative; width: var(--sidebar-w); height: 100vh; 
                 flex-direction: column; justify-content: flex-start; 
-                padding-top: 40px; border-top: none; border-right: 1px solid #eee;
-                bottom: auto; 
+                padding: 30px 15px; border-top: none; border-right: 1px solid #e5e7eb;
+                background: #fff; box-shadow: 2px 0 10px rgba(0,0,0,0.02);
             }
-            .nav-item { 
-                width: 90%; display: flex; align-items: center; gap: 15px; 
-                padding: 15px 25px; margin-bottom: 5px; font-size: 1rem; 
-                text-align: left;
-            }
-            .nav-icon { margin-bottom: 0; font-size: 1.2rem; }
             
-            /* Esconde Header Mobile */
+            .nav-brand { 
+                display: block; margin-bottom: 40px; text-align: center;
+            }
+            .nav-brand h1 { margin: 0; color: var(--primary); font-size: 1.5rem; letter-spacing: -1px; }
+            .nav-brand span { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; }
+
+            .nav-item { 
+                width: 100%; display: flex; align-items: center; gap: 15px; 
+                padding: 12px 20px; margin-bottom: 8px; font-size: 0.95rem; font-weight: 500;
+                text-align: left; border-radius: 8px;
+            }
+            .nav-item:hover { background-color: #f3f4f6; color: var(--primary); }
+            .nav-item.active { background-color: var(--primary-light); color: var(--primary); font-weight: 600; }
+            .nav-icon { font-size: 1.2rem; margin: 0; }
+
             .mobile-header { display: none; }
 
-            /* Conteúdo Principal */
-            .main-container { 
-                flex: 1; 
-                background: #f8f9fa; 
-                align-items: center; /* Centraliza no Ultrawide */
-            }
-            
-            .tab-content { 
-                padding: 40px; 
-                width: 100%; 
-                max-width: 1400px; /* Limita largura no ultrawide */
-                height: 100vh;
+            /* Main Layout */
+            .main-container { padding: 0; background: #f9fafb; }
+            .tab-content { padding: 40px; max-width: 1600px; margin: 0 auto; width: 100%; height: 100vh; }
+
+            /* Toolbar Desktop */
+            .toolbar { flex-direction: row; align-items: center; justify-content: space-between; padding: 20px; }
+            .toolbar-inputs { display: flex; gap: 15px; flex: 1; max-width: 600px; }
+
+            /* Grid Responsivo para Cards */
+            .events-container.grid { 
+                grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); 
+                gap: 20px; 
             }
 
-            /* Formulário em Grid (2 Colunas) */
+            /* Formulário Duas Colunas */
             form#eventoForm {
-                display: grid;
-                grid-template-columns: 1fr 1fr; /* Duas colunas */
-                gap: 20px;
-                background: white;
-                padding: 40px;
-                border-radius: 15px;
-                box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+                display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+                background: white; padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow);
             }
-            .form-group { margin-bottom: 0; }
-            .full-width { grid-column: 1 / -1; } /* Itens que ocupam tudo */
+            .full-width { grid-column: 1 / -1; }
+
+            /* Configuração */
+            form#configForm { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
             
-            /* Configuração em Grid */
-            form#configForm {
-                display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
-            }
-
-            /* Modal centralizado no PC */
+            /* Modal Centralizado */
             .modal-overlay { align-items: center; justify-content: center; }
-            .modal-content { 
-                width: 500px; 
-                border-radius: 15px; 
-                max-height: 80vh;
-            }
-
-            /* Lista de Eventos em Grid */
-            #listViewContainer {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-                gap: 15px;
-            }
+            .modal-content { width: 500px; border-radius: var(--radius); }
         }
     </style>
 </head>
 <body>
 
     <nav class="navbar">
-        <div style="font-size:1.2rem; font-weight:bold; color:#333; margin-bottom:40px; padding-left:25px; width:100%;">
-            STUDIO NBV <span style="font-size:0.8rem; color:#888; display:block; font-weight:normal;">Admin Panel</span>
+        <div class="nav-brand">
+            <h1>NBV</h1>
+            <span>Studio Manager</span>
         </div>
 
         <div class="nav-item active" onclick="switchTab('calendar')">
             <span class="nav-icon">📅</span> Agenda
         </div>
         <div class="nav-item" onclick="switchTab('list')">
-            <span class="nav-icon">📋</span> Lista
+            <span class="nav-icon">📋</span> Lista de Eventos
         </div>
         <div class="nav-item" onclick="switchTab('form'); resetForm();">
-            <span class="nav-icon">➕</span> Novo Evento
+            <span class="nav-icon">➕</span> Novo Agendamento
         </div>
         <div class="nav-item" onclick="switchTab('config')">
-            <span class="nav-icon">⚙️</span> Configuração
+            <span class="nav-icon">⚙️</span> Configurações
         </div>
     </nav>
 
     <div class="main-container">
         
-        <div class="mobile-header">
-            <h1 style="margin:0; font-size:1.2rem;">Studio NBV Admin</h1>
-        </div>
+        <div class="mobile-header">Studio NBV Admin</div>
 
         <div id="tab-calendar" class="tab-content active">
-            <div class="card" style="height: 100%; display: flex; flex-direction: column;">
-                <div id='calendar' style="flex:1;"></div>
+            <div style="height: 100%; display: flex; flex-direction: column;">
+                <div id='calendar'></div>
             </div>
         </div>
 
         <div id="tab-list" class="tab-content">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <h2>Eventos</h2>
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="searchInput" oninput="renderListView()" placeholder="Buscar..." style="padding:10px;">
-                    <input type="month" id="filterMonth" onchange="renderListView()" style="padding:10px;">
-                    <button onclick="clearFilter()" style="padding:10px 20px; border:none; background:#eee; cursor:pointer; border-radius:8px;">Limpar</button>
+                <h2>Gestão de Eventos</h2>
+            </div>
+            
+            <div class="toolbar">
+                <div class="toolbar-inputs">
+                    <input type="text" id="searchInput" oninput="renderListView()" placeholder="🔍 Buscar por nome, whats...">
+                    <input type="month" id="filterMonth" onchange="renderListView()">
+                </div>
+                
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div class="view-toggles">
+                        <button class="view-btn active" onclick="setView('grid')" title="Grade">▣</button>
+                        <button class="view-btn" onclick="setView('list')" title="Lista">☰</button>
+                    </div>
+                    <button onclick="clearFilter()" class="btn-clean" style="padding:10px 15px; border-radius:8px; border:none; cursor:pointer;">Limpar</button>
                 </div>
             </div>
-            <div id="listViewContainer">Carregando...</div>
+
+            <div id="listViewContainer" class="events-container grid">
+                </div>
         </div>
 
         <div id="tab-form" class="tab-content">
-            <div style="max-width: 900px; margin: 0 auto;"> <h2 id="formTitle">Novo Evento</h2>
+            <div style="max-width: 900px; margin: 0 auto;">
+                <h2>Novo Agendamento</h2>
                 <form id="eventoForm">
                     <input type="hidden" id="eventoId"><input type="hidden" id="acao" value="criar">
                     
-                    <div class="form-group full-width" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
-                        <label>Tipo de Agendamento</label>
-                        <select id="tipoBloqueio" required>
-                            <option value="bloqueio">🔴 Bloquear Dia (Ensaio/Evento)</option>
+                    <div class="form-group full-width" style="background: #eef2ff; padding: 20px; border-radius: 10px; border: 1px solid #c7d2fe;">
+                        <label style="color:var(--primary);">Tipo de Evento</label>
+                        <select id="tipoBloqueio" required style="border-color: #a5b4fc;">
+                            <option value="bloqueio">🔴 Bloqueio Total (Ensaio/Evento)</option>
                             <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
                         </select>
                     </div>
 
                     <div class="form-group full-width">
                         <label>Título do Evento</label>
-                        <input type="text" id="titulo" required placeholder="Ex: Casamento Silva">
+                        <input type="text" id="titulo" required placeholder="Ex: Casamento Silva e Souza">
                     </div>
 
-                    <div class="form-group">
-                        <label>Nome do Cliente</label>
-                        <input type="text" id="cliente" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>WhatsApp</label>
-                        <input type="tel" id="whatsapp" placeholder="(42) 99999-9999">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Início</label>
-                        <input type="datetime-local" id="inicio" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Fim</label>
-                        <input type="datetime-local" id="fim" required>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Local</label>
-                        <input type="text" id="local">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Link Contrato (Drive)</label>
-                        <input type="url" id="contratoUrl">
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>Observações</label>
-                        <textarea id="obs" rows="3"></textarea>
-                    </div>
+                    <div class="form-group"><label>Nome do Cliente</label><input type="text" id="cliente" required></div>
+                    <div class="form-group"><label>WhatsApp</label><input type="tel" id="whatsapp"></div>
+                    <div class="form-group"><label>Início</label><input type="datetime-local" id="inicio" required></div>
+                    <div class="form-group"><label>Fim</label><input type="datetime-local" id="fim" required></div>
                     
-                    <div class="full-width" style="display:flex; gap:10px; margin-top:10px;">
+                    <div class="form-group full-width"><label>Local</label><input type="text" id="local"></div>
+                    <div class="form-group full-width"><label>Link Contrato</label><input type="url" id="contratoUrl" placeholder="https://..."></div>
+                    <div class="form-group full-width"><label>Observações</label><textarea id="obs" rows="3"></textarea></div>
+                    
+                    <div class="full-width" style="display:flex; gap:15px; margin-top:15px;">
                         <button type="submit" id="btnSalvar" class="btn-action btn-save">Salvar Evento</button>
-                        <button type="button" onclick="resetForm()" class="btn-action" style="background:#eee;">Limpar</button>
+                        <button type="button" onclick="resetForm()" class="btn-action btn-clean">Limpar</button>
                     </div>
                 </form>
             </div>
@@ -245,28 +284,30 @@
 
         <div id="tab-config" class="tab-content">
             <h2>Configuração de Horários</h2>
-            <p>Define os horários disponíveis para agendamento online.</p>
-            <form id="configForm">
-                <div class="card"><label>Segunda</label><input type="text" data-day="1"></div>
-                <div class="card"><label>Terça</label><input type="text" data-day="2"></div>
-                <div class="card"><label>Quarta</label><input type="text" data-day="3"></div>
-                <div class="card"><label>Quinta</label><input type="text" data-day="4"></div>
-                <div class="card"><label>Sexta</label><input type="text" data-day="5"></div>
-                <div class="card"><label>Sábado</label><input type="text" data-day="6"></div>
-                <div class="card"><label>Domingo</label><input type="text" data-day="0"></div>
-                <div class="full-width" style="margin-top:20px;">
-                    <button type="button" onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar Todos</button>
-                </div>
-            </form>
+            <div class="card">
+                <p style="color:#666; margin-bottom:20px;">Defina os horários disponíveis para agendamento online em cada dia.</p>
+                <form id="configForm">
+                    <div><label>Segunda</label><input type="text" data-day="1"></div>
+                    <div><label>Terça</label><input type="text" data-day="2"></div>
+                    <div><label>Quarta</label><input type="text" data-day="3"></div>
+                    <div><label>Quinta</label><input type="text" data-day="4"></div>
+                    <div><label>Sexta</label><input type="text" data-day="5"></div>
+                    <div><label>Sábado</label><input type="text" data-day="6"></div>
+                    <div><label>Domingo</label><input type="text" data-day="0"></div>
+                </form>
+                <button type="button" onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save" style="margin-top:20px; max-width:300px;">Salvar Alterações</button>
+            </div>
         </div>
-
     </div>
 
     <div id="detailsModal" class="modal-overlay">
         <div class="modal-content">
-            <div style="display:flex; justify-content:space-between;"><h3>Detalhes</h3><span onclick="closeModal()" style="font-size:1.5rem; cursor:pointer;">×</span></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h3 style="margin:0;">Detalhes</h3>
+                <span onclick="closeModal()" style="font-size:1.5rem; cursor:pointer; color:#999;">&times;</span>
+            </div>
             <div id="modalBody"></div>
-            <div style="display:flex; gap:10px; margin-top:20px;">
+            <div style="display:flex; gap:10px; margin-top:25px; border-top:1px solid #eee; padding-top:20px;">
                 <button class="btn-action btn-save" onclick="editCurrentEvent()">✏️ Editar</button>
                 <button class="btn-action btn-delete" onclick="deleteCurrentEvent()">🗑️ Excluir</button>
             </div>
@@ -291,24 +332,36 @@
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById('tab-' + tabId).classList.add('active');
         
-        // Lógica para achar o botão certo no menu novo
-        const navItems = document.querySelectorAll('.nav-item');
         const map = {'calendar':0, 'list':1, 'form':2, 'config':3};
+        const navItems = document.querySelectorAll('.nav-item');
         if(navItems[map[tabId]]) navItems[map[tabId]].classList.add('active');
 
         if(tabId === 'calendar' && calendar) setTimeout(() => calendar.updateSize(), 100);
         if(tabId === 'list') renderListView();
     }
 
+    // --- FUNÇÃO DE TROCAR VISTA (GRID/LISTA) ---
+    function setView(mode) {
+        const container = document.getElementById('listViewContainer');
+        const btns = document.querySelectorAll('.view-btn');
+        
+        container.className = `events-container ${mode}`; // Aplica classe .grid ou .list
+        
+        btns.forEach(btn => btn.classList.remove('active'));
+        if(mode === 'grid') btns[0].classList.add('active');
+        else btns[1].classList.add('active');
+    }
+
     function initCalendar() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', headerToolbar: { left: 'title', right: 'prev,next today' },
+            initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', 
+            headerToolbar: { left: 'title', right: 'prev,next today' },
+            buttonText: { today: 'Hoje' },
             events: allEvents, eventClick: info => openModal(info.event)
         });
         calendar.render();
     }
 
-    // --- MANTER AS MESMAS FUNÇÕES DE ANTES ---
     function loadData() {
         fetch(SCRIPT_URL).then(res => res.json()).then(data => {
             allEvents = data.eventos || [];
@@ -326,7 +379,7 @@
     }
 
     function saveConfig() {
-        const btn = document.getElementById('btnSaveConfig'); btn.innerText = "..."; btn.disabled = true;
+        const btn = document.getElementById('btnSaveConfig'); btn.innerText = "Salvando..."; btn.disabled = true;
         let configObj = {};
         document.querySelectorAll('#configForm input').forEach(input => {
             const dia = input.getAttribute('data-day');
@@ -334,7 +387,7 @@
             configObj[dia] = val;
         });
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'salvar_config', horarios: configObj }) })
-        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Todos"; btn.disabled = false; });
+        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Salvar Alterações"; btn.disabled = false; });
     }
 
     function clearFilter() { document.getElementById('filterMonth').value = ""; document.getElementById('searchInput').value = ""; renderListView(); }
@@ -368,13 +421,33 @@
                 count++;
                 const desc = ev.description || '';
                 const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || 'Sem nome';
+                const tipo = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
+                const whatsapp = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
+
                 const div = document.createElement('div'); div.className = 'event-card';
-                div.innerHTML = `<h4>${ev.title}</h4><p>👤 ${cliente}</p><p>🕒 ${evDate.toLocaleString('pt-BR')}</p>`;
+                // Define cor da borda baseado no tipo
+                div.style.borderLeftColor = tipo === 'atendimento' ? '#22c55e' : '#ef4444';
+
+                // Badges bonitas
+                const badgeHtml = tipo === 'atendimento' 
+                    ? `<span class="badge atend">Atendimento</span>` 
+                    : `<span class="badge block">Bloqueio</span>`;
+
+                div.innerHTML = `
+                    <div style="flex:1;">
+                        ${badgeHtml}
+                        <h4 style="margin:5px 0; color:#1f2937;">${ev.title}</h4>
+                        <div style="color:#6b7280; font-size:0.9rem;">
+                            👤 ${cliente} <br>
+                            🕒 ${evDate.toLocaleDateString('pt-BR')} às ${evDate.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}
+                        </div>
+                    </div>
+                `;
                 div.onclick = () => openModal({ id: ev.id, title: ev.title, start: ev.start, end: ev.end, extendedProps: { description: ev.description, location: ev.location } });
                 container.appendChild(div);
             }
         });
-        if (count === 0) container.innerHTML = `<p style="text-align:center; color:#888;">Nenhum evento encontrado.</p>`;
+        if (count === 0) container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#888;">Nenhum evento encontrado.</p>`;
     }
 
     function openModal(ev) {
@@ -385,12 +458,32 @@
         const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || '-';
         const contrato = (desc.match(/CONTRATO: (http[^\s]+)/)||[])[1];
         const whats = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '-';
-        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p><p><b>Evento:</b> ${ev.title}</p><p><b>Cliente:</b> ${cliente}</p><p><b>WhatsApp:</b> ${whats}</p><p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p><p><b>Local:</b> ${props.location || ev.location || '-'}</p>`;
-        if(contrato) html += `<p><a href="${contrato}" target="_blank" style="color:#007bff; font-weight:bold;">📄 Abrir Contrato</a></p>`;
+        const obs = (desc.match(/OBS: (.*)/s)||[])[1] || '-';
+
+        let html = `
+            <div style="margin-bottom:15px;">
+                <span class="badge ${tipo === 'atendimento' ? 'atend' : 'block'}" style="font-size:0.9rem;">
+                    ${tipo === 'atendimento' ? 'Atendimento' : 'Bloqueio Total'}
+                </span>
+            </div>
+            <p><b>Evento:</b> ${ev.title}</p>
+            <p><b>Cliente:</b> ${cliente}</p>
+            <p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p>
+            <p><b>Local:</b> ${props.location || ev.location || '-'}</p>
+            <p><b>WhatsApp:</b> ${whats}</p>
+            <div style="background:#f9fafb; padding:10px; border-radius:8px; margin-top:10px;">
+                <small style="font-weight:bold; color:#666;">Observações:</small><br>
+                ${obs}
+            </div>
+        `;
+        
+        if(contrato) html += `<a href="${contrato}" target="_blank" class="btn-action btn-clean" style="display:block; text-align:center; text-decoration:none; margin-top:15px; color:#4f46e5;">📄 Abrir Contrato</a>`;
+        
         document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailsModal').classList.add('open');
     }
     function closeModal() { document.getElementById('detailsModal').classList.remove('open'); }
+    
     function editCurrentEvent() {
         closeModal(); switchTab('form');
         const ev = currentEventData;
@@ -408,15 +501,16 @@
         document.getElementById('inicio').value = fmt(ev.start);
         document.getElementById('fim').value = fmt(ev.end || ev.start);
     }
+    
     function deleteCurrentEvent() {
-        if(!confirm("Excluir?")) return;
+        if(!confirm("Tem certeza que deseja excluir?")) return;
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'excluir', id: currentEventData.id }) })
-        .then(() => { closeModal(); loadData(); alert("Excluído!"); });
+        .then(() => { closeModal(); loadData(); alert("Excluído com sucesso!"); });
     }
-    function resetForm() { document.getElementById('eventoForm').reset(); document.getElementById('acao').value = "criar"; document.getElementById('formTitle').innerText = "Novo Evento"; }
+    function resetForm() { document.getElementById('eventoForm').reset(); document.getElementById('acao').value = "criar"; document.getElementById('formTitle').innerText = "Novo Agendamento"; }
     function handleFormSubmit(e) {
         e.preventDefault();
-        const btn = document.getElementById('btnSalvar'); btn.innerText = "..."; btn.disabled = true;
+        const btn = document.getElementById('btnSalvar'); btn.innerText = "Salvando..."; btn.disabled = true;
         const dados = {
             acao: document.getElementById('acao').value, id: document.getElementById('eventoId').value, tipoBloqueio: document.getElementById('tipoBloqueio').value,
             titulo: document.getElementById('titulo').value, cliente: document.getElementById('cliente').value, whatsapp: document.getElementById('whatsapp').value,
@@ -425,7 +519,7 @@
         };
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dados) })
         .then(res => res.json()).then(r => { alert(r.msg); resetForm(); switchTab('calendar'); loadData(); })
-        .finally(() => { btn.innerText = "Salvar"; btn.disabled = false; });
+        .finally(() => { btn.innerText = "Salvar Evento"; btn.disabled = false; });
     }
 </script>
 </body>

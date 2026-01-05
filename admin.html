@@ -26,30 +26,30 @@
         .modal-overlay.open { display: flex; }
         .modal-content { background: white; width: 100%; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        /* Estilo Específico da Config de Dias */
+        .day-config { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
+        .day-config label { color: var(--primary); margin-bottom: 8px; }
+        .day-config input { background: #fafafa; }
     </style>
 </head>
 <body>
 
     <div id="tab-calendar" class="tab-content active"><div id='calendar'></div></div>
-
-    <div id="tab-list" class="tab-content">
-        <h2 style="margin-top:0;">Eventos</h2><div id="listViewContainer">Carregando...</div>
-    </div>
+    <div id="tab-list" class="tab-content"><h2 style="margin-top:0;">Eventos</h2><div id="listViewContainer">Carregando...</div></div>
 
     <div id="tab-form" class="tab-content">
         <h2 id="formTitle">Novo Evento</h2>
         <form id="eventoForm">
             <input type="hidden" id="eventoId"><input type="hidden" id="acao" value="criar">
-            
             <div class="form-group" style="background: #e3f2fd; padding: 10px; border-radius: 8px; border: 1px solid #90caf9;">
                 <label>Tipo de Agendamento</label>
                 <select id="tipoBloqueio" required>
                     <option value="bloqueio">🔴 Bloquear Dia (Ensaio/Evento)</option>
                     <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
                 </select>
-                <small style="color:#666; display:block; margin-top:5px;">Se escolher "Bloquear", o dia inteiro ficará indisponível para clientes.</small>
+                <small style="color:#666; display:block; margin-top:5px;">Se escolher "Bloquear", o dia inteiro ficará indisponível.</small>
             </div>
-
             <div class="form-group"><label>Título</label><input type="text" id="titulo" required></div>
             <div class="form-group"><label>Cliente</label><input type="text" id="cliente" required></div>
             <div class="form-group"><label>WhatsApp</label><input type="tel" id="whatsapp"></div>
@@ -64,9 +64,20 @@
     </div>
 
     <div id="tab-config" class="tab-content">
-        <h2>Horários de Atendimento</h2>
-        <div class="form-group"><label>Lista de Horários</label><textarea id="configHorarios" rows="5"></textarea></div>
-        <button onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar</button>
+        <h2>Horários da Semana</h2>
+        <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Digite os horários separados por vírgula. Deixe em branco se não atender no dia.</p>
+        
+        <form id="configForm">
+            <div class="day-config"><label>Segunda-feira</label><input type="text" data-day="1" placeholder="Ex: 09:00, 14:00"></div>
+            <div class="day-config"><label>Terça-feira</label><input type="text" data-day="2" placeholder="Ex: 09:00, 14:00"></div>
+            <div class="day-config"><label>Quarta-feira</label><input type="text" data-day="3" placeholder="Ex: 09:00, 14:00"></div>
+            <div class="day-config"><label>Quinta-feira</label><input type="text" data-day="4" placeholder="Ex: 09:00, 14:00"></div>
+            <div class="day-config"><label>Sexta-feira</label><input type="text" data-day="5" placeholder="Ex: 09:00, 14:00"></div>
+            <div class="day-config"><label>Sábado</label><input type="text" data-day="6" placeholder="Ex: 09:00"></div>
+            <div class="day-config"><label>Domingo</label><input type="text" data-day="0" placeholder="Fechado"></div>
+            
+            <button type="button" onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar Horários</button>
+        </form>
     </div>
 
     <nav class="navbar">
@@ -88,7 +99,6 @@
     </div>
 
 <script>
-    // URL DO SEU SCRIPT
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
 
     let allEvents = [], currentEventData = null, calendar;
@@ -121,18 +131,35 @@
             allEvents = data.eventos || [];
             calendar.removeAllEvents();
             calendar.addEventSource(allEvents);
-            if(data.config && data.config.horarios) document.getElementById('configHorarios').value = data.config.horarios.join(', ');
+            
+            // Carrega Configuração nos inputs
+            if(data.config && data.config.horarios) {
+                const h = data.config.horarios;
+                // Preenche cada input com base no ID data-day (0 a 6)
+                document.querySelectorAll('#configForm input').forEach(input => {
+                    const dia = input.getAttribute('data-day');
+                    if(h[dia]) input.value = h[dia].join(', ');
+                });
+            }
             if(document.getElementById('tab-list').classList.contains('active')) renderListView();
         });
     }
 
     function saveConfig() {
         const btn = document.getElementById('btnSaveConfig'); btn.innerText = "..."; btn.disabled = true;
-        const horariosArr = document.getElementById('configHorarios').value.split(',').map(h => h.trim()).filter(h => h !== "");
-        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'salvar_config', horarios: horariosArr }) })
-        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar"; btn.disabled = false; });
+        
+        let configObj = {};
+        document.querySelectorAll('#configForm input').forEach(input => {
+            const dia = input.getAttribute('data-day');
+            const val = input.value.split(',').map(h => h.trim()).filter(h => h !== "");
+            configObj[dia] = val;
+        });
+
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'salvar_config', horarios: configObj }) })
+        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Horários"; btn.disabled = false; });
     }
 
+    // ... (RESTANTE DO CÓDIGO - renderListView, openModal, edit, delete - IGUAL AO ANTERIOR) ...
     function renderListView() {
         const container = document.getElementById('listViewContainer'); container.innerHTML = "";
         allEvents.sort((a,b) => new Date(a.start) - new Date(b.start)).forEach(ev => {
@@ -142,23 +169,18 @@
             container.appendChild(div);
         });
     }
-
     function openModal(ev) {
         currentEventData = ev;
         const desc = ev.extendedProps.description || '';
         const tipo = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
         const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || '-';
         const contrato = (desc.match(/CONTRATO: (http[^\s]+)/)||[])[1];
-        
-        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p>
-                    <p><b>Cliente:</b> ${cliente}</p>
-                    <p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p>`;
+        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p><p><b>Cliente:</b> ${cliente}</p><p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p>`;
         if(contrato) html += `<p><a href="${contrato}" target="_blank">Abrir Contrato</a></p>`;
         document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailsModal').classList.add('open');
     }
     function closeModal() { document.getElementById('detailsModal').classList.remove('open'); }
-
     function editCurrentEvent() {
         closeModal(); switchTab('form');
         const ev = currentEventData;
@@ -166,42 +188,29 @@
         document.getElementById('formTitle').innerText = "Editar Evento";
         document.getElementById('acao').value = "editar";
         document.getElementById('eventoId').value = ev.id;
-        
-        // Preenche campos
         document.getElementById('tipoBloqueio').value = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
         document.getElementById('titulo').value = ev.title;
         document.getElementById('cliente').value = (desc.match(/CLIENTE: (.*)/)||[])[1] || '';
         document.getElementById('whatsapp').value = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
         document.getElementById('obs').value = (desc.match(/OBS: (.*)/s)||[])[1] || '';
-        
         const fmt = d => { const x = new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,16); };
         document.getElementById('inicio').value = fmt(ev.start);
         document.getElementById('fim').value = fmt(ev.end || ev.start);
     }
-    
     function deleteCurrentEvent() {
         if(!confirm("Excluir?")) return;
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'excluir', id: currentEventData.id }) })
         .then(() => { closeModal(); loadData(); alert("Excluído!"); });
     }
-
     function resetForm() { document.getElementById('eventoForm').reset(); document.getElementById('acao').value = "criar"; document.getElementById('formTitle').innerText = "Novo Evento"; }
-
     function handleFormSubmit(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSalvar'); btn.innerText = "..."; btn.disabled = true;
         const dados = {
-            acao: document.getElementById('acao').value,
-            id: document.getElementById('eventoId').value,
-            tipoBloqueio: document.getElementById('tipoBloqueio').value,
-            titulo: document.getElementById('titulo').value,
-            cliente: document.getElementById('cliente').value,
-            whatsapp: document.getElementById('whatsapp').value,
-            inicio: document.getElementById('inicio').value,
-            fim: document.getElementById('fim').value,
-            local: document.getElementById('local').value,
-            contratoUrl: document.getElementById('contratoUrl').value,
-            obs: document.getElementById('obs').value
+            acao: document.getElementById('acao').value, id: document.getElementById('eventoId').value, tipoBloqueio: document.getElementById('tipoBloqueio').value,
+            titulo: document.getElementById('titulo').value, cliente: document.getElementById('cliente').value, whatsapp: document.getElementById('whatsapp').value,
+            inicio: document.getElementById('inicio').value, fim: document.getElementById('fim').value, local: document.getElementById('local').value,
+            contratoUrl: document.getElementById('contratoUrl').value, obs: document.getElementById('obs').value
         };
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dados) })
         .then(res => res.json()).then(r => { alert(r.msg); resetForm(); switchTab('calendar'); loadData(); })

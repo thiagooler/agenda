@@ -20,19 +20,19 @@
         #calendar { background: white; padding: 15px; border-radius: 12px; min-height: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 
         /* --- ESTILOS DO CALENDÁRIO --- */
-        /* Deixar os dias com fundo verde claro (Disponível) */
+        /* Dias Livres: Fundo Verde Claro */
         .fc-daygrid-day { background-color: var(--green-free); transition: 0.2s; }
         .fc-daygrid-day:hover { filter: brightness(0.95); cursor: pointer; }
         
-        /* Eventos de Bloqueio (Vermelhos) */
+        /* Dias Bloqueados: Evento Vermelho */
         .fc-event { 
             border: none !important; 
             border-radius: 4px; 
             box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
             text-align: center;
-            padding: 2px;
+            padding: 4px;
         }
-        .fc-event-title { font-weight: bold; font-size: 0.85rem; }
+        .fc-event-title { font-weight: bold; font-size: 0.9rem; text-transform: uppercase; }
 
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
@@ -101,8 +101,8 @@
 
 <script>
     // ============================================
-    // ATUALIZE AQUI COM SEU LINK NOVO:
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
+    // SEU LINK NOVO JÁ ESTÁ AQUI EMBAIXO:
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjUCPrTr-c_WDZMZNACATAl7zswPbg03XYDk4Vn6kDDUn-LsdJ1hXspNWQNdSVytlVIw/exec';
     
     const MY_PHONE = '5542998370150'; 
     const DURACAO_ATENDIMENTO = 2; 
@@ -123,26 +123,22 @@
                     if(data.config && data.config.horarios) configHorarios = data.config.horarios;
                     allEvents = data.eventos || [];
                     
-                    // FILTRO VISUAL:
-                    // Se for 'atendimento', NÃO MOSTRA nada (deixa o dia verde).
-                    // Se for 'bloqueio', MOSTRA vermelho escrito Indisponível.
+                    // FILTRAGEM VISUAL
                     const displayEvents = [];
-                    
                     allEvents.forEach(e => {
                         const isAtendimento = e.description && e.description.includes('TIPO: atendimento');
                         if(!isAtendimento) {
-                            // É BLOQUEIO TOTAL
+                            // Se NÃO for atendimento (ou seja, é BLOQUEIO), mostra tarja vermelha
                             displayEvents.push({
                                 title: 'Indisponível', 
                                 start: e.start, 
                                 end: e.end, 
-                                backgroundColor: '#d32f2f', // Vermelho
+                                backgroundColor: '#d32f2f', // Vermelho Forte
                                 textColor: '#ffffff',
-                                allDay: true // Garante que ocupa o dia todo visualmente
+                                allDay: true 
                             });
                         }
                     });
-                    
                     success(displayEvents);
                 });
             },
@@ -151,10 +147,10 @@
             dateClick: info => {
                 if(new Date(info.dateStr) < new Date().setHours(0,0,0,0)) return alert("Data passada.");
                 
-                // Verifica se tem bloqueio TOTAL neste dia
+                // Verifica Bloqueio Total
                 const blocked = allEvents.find(ev => 
                     ev.start.startsWith(info.dateStr) && 
-                    !ev.description.includes('TIPO: atendimento') // Se NÃO for atendimento, é bloqueio
+                    !ev.description.includes('TIPO: atendimento')
                 );
                 
                 if(blocked) return alert("Esta data está indisponível.");
@@ -165,7 +161,7 @@
         calendar.render();
     });
 
-    // --- LÓGICA DO MODAL (Igual a anterior) ---
+    // --- FUNÇÕES DE LÓGICA (MODAL, HORÁRIOS) ---
     function openModal(d) {
         selectedDate = d; document.getElementById('selectedDateDisplay').innerText = new Date(d+'T00:00:00').toLocaleDateString('pt-BR');
         document.getElementById('step1').style.display = 'block'; document.getElementById('step2').style.display = 'none';
@@ -218,6 +214,7 @@
             horasDisponiveis.forEach(h => {
                 const div = document.createElement('div'); div.className = 'time-slot'; div.innerText = h;
                 
+                // Validação de Colisão de 2 Horas
                 const slotInicio = new Date(selectedDate + 'T' + h + ':00');
                 const slotFim = new Date(slotInicio.getTime() + (DURACAO_ATENDIMENTO * 60 * 60 * 1000));
 

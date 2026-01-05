@@ -1,11 +1,207 @@
-// Exemplo da chamada JS
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgUdJyYNE40jlsMLEIIoH3kyq-VNLWs5Vg1R_7QbdTiEqdxXvPqTbnHdX5oASZ5i5xWA/exec';
-const MEU_TOKEN = 'gooler10'; // Igual a do script
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão - Studio NBV</title>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <style>
+        :root { --primary: #1a1a1a; --accent: #007bff; --bg: #f4f6f8; --text: #333; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        
+        /* Cabeçalho */
+        header { background: white; padding: 15px 30px; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; }
+        h1 { margin: 0; font-size: 1.2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
 
-fetch(`${SCRIPT_URL}?tipo=admin&token=${MEU_TOKEN}`)
-  .then(response => response.json())
-  .then(eventos => {
-    // Aqui vem TUDO: Nome do cliente, telefone, detalhes.
-    // Use isso para montar sua tabela de gestão.
-    console.log(eventos);
-  });
+        /* Layout Principal */
+        .container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar (Formulário) */
+        .sidebar { width: 320px; background: white; border-right: 1px solid #ddd; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        
+        /* Área da Agenda */
+        .calendar-wrapper { flex: 1; padding: 20px; overflow-y: auto; }
+        #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); min-height: 100%; }
+
+        /* Estilos do Form */
+        label { font-size: 0.85rem; font-weight: 600; color: #666; margin-bottom: 5px; display: block; }
+        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; transition: 0.2s; }
+        input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        
+        button#btnSalvar { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: 0.2s; width: 100%; }
+        button#btnSalvar:hover { background: #0056b3; }
+        button#btnSalvar:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* Ajustes Mobile */
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; }
+            .calendar-wrapper { height: 600px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Agenda Admin</h1>
+    <div style="font-size: 0.9rem; color: #666;">thfdsadv@gmail.com</div>
+</header>
+
+<div class="container">
+    <div class="sidebar">
+        <h3>Novo Evento</h3>
+        <form id="eventoForm">
+            <div>
+                <label>Título do Evento</label>
+                <input type="text" id="titulo" placeholder="Ex: Fotos Casamento" required>
+            </div>
+            
+            <div>
+                <label>Cliente</label>
+                <input type="text" id="cliente" required>
+            </div>
+
+            <div>
+                <label>WhatsApp</label>
+                <input type="tel" id="whatsapp" placeholder="(xx) xxxxx-xxxx">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label>Início</label>
+                    <input type="datetime-local" id="inicio" required>
+                </div>
+                <div style="flex: 1;">
+                    <label>Fim</label>
+                    <input type="datetime-local" id="fim" required>
+                </div>
+            </div>
+
+            <div>
+                <label>Local</label>
+                <input type="text" id="local">
+            </div>
+
+            <div>
+                <label>Link do Contrato (Drive)</label>
+                <input type="url" id="contratoUrl" placeholder="https://drive.google.com/...">
+            </div>
+
+            <div>
+                <label>Obs</label>
+                <textarea id="obs" rows="3"></textarea>
+            </div>
+
+            <button type="submit" id="btnSalvar">Salvar na Agenda</button>
+        </form>
+    </div>
+
+    <div class="calendar-wrapper">
+        <div id='calendar'></div>
+    </div>
+</div>
+
+<script>
+    // ======================================================
+    // COLE SUA URL DO APPS SCRIPT DENTRO DAS ASPAS ABAIXO:
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgUdJyYNE40jlsMLEIIoH3kyq-VNLWs5Vg1R_7QbdTiEqdxXvPqTbnHdX5oASZ5i5xWA/exec'; 
+    // ======================================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const calendarEl = document.getElementById('calendar');
+        
+        // Inicializa o Calendário
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'pt-br',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth'
+            },
+            buttonText: { today: 'Hoje', month: 'Mês', list: 'Lista' },
+            height: 'auto',
+            
+            // BUSCA OS EVENTOS
+            events: function(info, successCallback, failureCallback) {
+                if (SCRIPT_URL.includes('COLE_SUA_URL')) {
+                    console.warn("URL do script não configurada.");
+                    return;
+                }
+                fetch(SCRIPT_URL)
+                    .then(res => res.json())
+                    .then(data => successCallback(data))
+                    .catch(err => {
+                        console.error(err);
+                        failureCallback(err);
+                    });
+            },
+            
+            // CLICK NO EVENTO
+            eventClick: function(info) {
+                const desc = info.event.extendedProps.description || '';
+                // Tenta extrair o link do contrato da descrição se existir
+                const match = desc.match(/CONTRATO: (http[^\s]+)/);
+                let msg = `Evento: ${info.event.title}\n\n${desc}`;
+                
+                if (match && confirm(msg + '\n\nDeseja abrir o contrato agora?')) {
+                    window.open(match[1], '_blank');
+                } else {
+                    alert(msg);
+                }
+            }
+        });
+        
+        calendar.render();
+
+        // LOGICA DE SALVAR
+        const form = document.getElementById('eventoForm');
+        const btn = document.getElementById('btnSalvar');
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            if (SCRIPT_URL.includes('COLE_SUA_URL')) {
+                alert("Erro: Você esqueceu de colocar a URL do Script no código HTML!");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Salvando...";
+
+            const dados = {
+                titulo: document.getElementById('titulo').value,
+                cliente: document.getElementById('cliente').value,
+                whatsapp: document.getElementById('whatsapp').value,
+                inicio: document.getElementById('inicio').value,
+                fim: document.getElementById('fim').value,
+                local: document.getElementById('local').value,
+                contratoUrl: document.getElementById('contratoUrl').value,
+                obs: document.getElementById('obs').value
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(dados)
+            })
+            .then(res => res.json())
+            .then(response => {
+                if(response.status === 'sucesso') {
+                    alert('Evento agendado!');
+                    form.reset();
+                    calendar.refetchEvents(); // Recarrega o calendário
+                } else {
+                    alert('Erro ao salvar: ' + (response.message || 'Desconhecido'));
+                }
+            })
+            .catch(err => alert('Erro de conexão. Verifique o console.'))
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerText = "Salvar na Agenda";
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

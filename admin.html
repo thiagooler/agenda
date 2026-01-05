@@ -6,123 +6,261 @@
     <title>Admin Studio NBV</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        :root { --primary: #007bff; --danger: #dc3545; --bg: #f0f2f5; --nav-height: 60px; }
+        :root { --primary: #007bff; --danger: #dc3545; --bg: #f4f7f6; --sidebar-w: 260px; --header-h: 60px; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
-        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; }
-        .tab-content.active { display: block; }
+        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* --- LAYOUT GERAL --- */
+        .main-container { flex: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
         
-        /* NAVBAR */
-        .navbar { position: fixed; bottom: 0; width: 100%; height: var(--nav-height); background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; z-index: 1000; }
-        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; font-size: 0.8rem; }
-        .nav-item.active { color: var(--primary); font-weight: bold; }
-        .nav-icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
-        
-        /* FILTROS E BUSCA */
-        .filter-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 10px; }
-        .search-row { display: flex; gap: 10px; }
-        
-        input#searchInput { 
-            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; 
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat; background-position: 10px center; padding-left: 35px;
+        .tab-content { 
+            display: none; 
+            flex: 1; 
+            overflow-y: auto; 
+            padding: 15px; 
+            padding-bottom: 90px; /* Espaço para menu mobile */
+            max-width: 100%;
         }
+        .tab-content.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* HEADER MOBILE */
+        .mobile-header { background: white; padding: 15px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: block; }
+        
+        /* NAVBAR (Menu) */
+        .navbar { 
+            position: fixed; bottom: 0; width: 100%; height: 70px; 
+            background: white; display: flex; justify-content: space-around; align-items: center; 
+            border-top: 1px solid #ddd; z-index: 1000; 
+            transition: 0.3s;
+        }
+        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; font-size: 0.75rem; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .nav-item:hover { background-color: #f8f9fa; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-icon { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+
+        /* ESTILOS COMUNS */
+        h2 { margin-top: 0; color: #34495e; font-size: 1.5rem; margin-bottom: 20px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); margin-bottom: 20px; }
 
         /* FORMULÁRIO */
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
-        .btn-action { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #555; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 1rem; transition: border 0.2s; }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        
+        .btn-action { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; transition: transform 0.1s; }
+        .btn-action:active { transform: scale(0.98); }
         .btn-save { background: var(--primary); color: white; }
         .btn-delete { background: var(--danger); color: white; }
-        
-        /* CARDS */
-        .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card-info { font-size: 0.9rem; color: #666; margin: 3px 0; }
-        
-        /* CONFIG DIAS */
-        .day-config { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
-        .day-config label { color: var(--primary); margin-bottom: 8px; }
 
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
         .modal-overlay.open { display: flex; }
-        .modal-content { background: white; width: 100%; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; overflow-y: auto; }
+        .modal-content { background: white; width: 100%; max-height: 90vh; border-radius: 20px 20px 0 0; padding: 30px; animation: slideUp 0.3s; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* LISTA EVENTOS */
+        .event-card { background: white; padding: 15px; margin-bottom: 12px; border-radius: 10px; border-left: 5px solid var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: transform 0.2s; cursor: pointer; }
+        .event-card:hover { transform: translateY(-2px); }
+
+        /* =========================================
+           DESKTOP & ULTRAWIDE (TELA GRANDE)
+           ========================================= */
+        @media (min-width: 1024px) {
+            body { flex-direction: row; }
+            
+            /* Menu vira Lateral */
+            .navbar { 
+                position: relative; width: var(--sidebar-w); height: 100vh; 
+                flex-direction: column; justify-content: flex-start; 
+                padding-top: 40px; border-top: none; border-right: 1px solid #eee;
+                bottom: auto; 
+            }
+            .nav-item { 
+                width: 90%; display: flex; align-items: center; gap: 15px; 
+                padding: 15px 25px; margin-bottom: 5px; font-size: 1rem; 
+                text-align: left;
+            }
+            .nav-icon { margin-bottom: 0; font-size: 1.2rem; }
+            
+            /* Esconde Header Mobile */
+            .mobile-header { display: none; }
+
+            /* Conteúdo Principal */
+            .main-container { 
+                flex: 1; 
+                background: #f8f9fa; 
+                align-items: center; /* Centraliza no Ultrawide */
+            }
+            
+            .tab-content { 
+                padding: 40px; 
+                width: 100%; 
+                max-width: 1400px; /* Limita largura no ultrawide */
+                height: 100vh;
+            }
+
+            /* Formulário em Grid (2 Colunas) */
+            form#eventoForm {
+                display: grid;
+                grid-template-columns: 1fr 1fr; /* Duas colunas */
+                gap: 20px;
+                background: white;
+                padding: 40px;
+                border-radius: 15px;
+                box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            }
+            .form-group { margin-bottom: 0; }
+            .full-width { grid-column: 1 / -1; } /* Itens que ocupam tudo */
+            
+            /* Configuração em Grid */
+            form#configForm {
+                display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;
+            }
+
+            /* Modal centralizado no PC */
+            .modal-overlay { align-items: center; justify-content: center; }
+            .modal-content { 
+                width: 500px; 
+                border-radius: 15px; 
+                max-height: 80vh;
+            }
+
+            /* Lista de Eventos em Grid */
+            #listViewContainer {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 15px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div id="tab-calendar" class="tab-content active">
-        <div id='calendar'></div>
-    </div>
+    <nav class="navbar">
+        <div style="font-size:1.2rem; font-weight:bold; color:#333; margin-bottom:40px; padding-left:25px; width:100%;">
+            STUDIO NBV <span style="font-size:0.8rem; color:#888; display:block; font-weight:normal;">Admin Panel</span>
+        </div>
 
-    <div id="tab-list" class="tab-content">
-        <h2 style="margin-top:0;">Eventos</h2>
+        <div class="nav-item active" onclick="switchTab('calendar')">
+            <span class="nav-icon">📅</span> Agenda
+        </div>
+        <div class="nav-item" onclick="switchTab('list')">
+            <span class="nav-icon">📋</span> Lista
+        </div>
+        <div class="nav-item" onclick="switchTab('form'); resetForm();">
+            <span class="nav-icon">➕</span> Novo Evento
+        </div>
+        <div class="nav-item" onclick="switchTab('config')">
+            <span class="nav-icon">⚙️</span> Configuração
+        </div>
+    </nav>
+
+    <div class="main-container">
         
-        <div class="filter-bar">
-            <input type="text" id="searchInput" oninput="renderListView()" placeholder="Buscar cliente, zap, título...">
-            
-            <div class="search-row">
-                <input type="month" id="filterMonth" onchange="renderListView()" style="flex:1;">
-                <button onclick="clearFilter()" style="padding: 0 15px; background: #eee; border: none; border-radius: 8px; cursor: pointer;">Limpar</button>
+        <div class="mobile-header">
+            <h1 style="margin:0; font-size:1.2rem;">Studio NBV Admin</h1>
+        </div>
+
+        <div id="tab-calendar" class="tab-content active">
+            <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+                <div id='calendar' style="flex:1;"></div>
             </div>
         </div>
 
-        <div id="listViewContainer">Carregando...</div>
-    </div>
-
-    <div id="tab-form" class="tab-content">
-        <h2 id="formTitle">Novo Evento</h2>
-        <form id="eventoForm">
-            <input type="hidden" id="eventoId"><input type="hidden" id="acao" value="criar">
-            
-            <div class="form-group" style="background: #e3f2fd; padding: 10px; border-radius: 8px; border: 1px solid #90caf9;">
-                <label>Tipo de Agendamento</label>
-                <select id="tipoBloqueio" required>
-                    <option value="bloqueio">🔴 Bloquear Dia (Ensaio/Evento)</option>
-                    <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
-                </select>
-                <small style="color:#666; display:block; margin-top:5px;">Se escolher "Bloquear", o dia inteiro ficará indisponível.</small>
+        <div id="tab-list" class="tab-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2>Eventos</h2>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="searchInput" oninput="renderListView()" placeholder="Buscar..." style="padding:10px;">
+                    <input type="month" id="filterMonth" onchange="renderListView()" style="padding:10px;">
+                    <button onclick="clearFilter()" style="padding:10px 20px; border:none; background:#eee; cursor:pointer; border-radius:8px;">Limpar</button>
+                </div>
             </div>
+            <div id="listViewContainer">Carregando...</div>
+        </div>
 
-            <div class="form-group"><label>Título</label><input type="text" id="titulo" required></div>
-            <div class="form-group"><label>Cliente</label><input type="text" id="cliente" required></div>
-            <div class="form-group"><label>WhatsApp</label><input type="tel" id="whatsapp"></div>
-            <div class="form-group"><label>Início</label><input type="datetime-local" id="inicio" required></div>
-            <div class="form-group"><label>Fim</label><input type="datetime-local" id="fim" required></div>
-            <div class="form-group"><label>Local</label><input type="text" id="local"></div>
-            <div class="form-group"><label>Contrato (Link)</label><input type="url" id="contratoUrl"></div>
-            <div class="form-group"><label>Obs</label><textarea id="obs" rows="3"></textarea></div>
-            
-            <button type="submit" id="btnSalvar" class="btn-action btn-save">Salvar</button>
-            <button type="button" onclick="resetForm()" class="btn-action" style="background:#eee;">Limpar</button>
-        </form>
+        <div id="tab-form" class="tab-content">
+            <div style="max-width: 900px; margin: 0 auto;"> <h2 id="formTitle">Novo Evento</h2>
+                <form id="eventoForm">
+                    <input type="hidden" id="eventoId"><input type="hidden" id="acao" value="criar">
+                    
+                    <div class="form-group full-width" style="background: #e3f2fd; padding: 15px; border-radius: 8px; border: 1px solid #90caf9;">
+                        <label>Tipo de Agendamento</label>
+                        <select id="tipoBloqueio" required>
+                            <option value="bloqueio">🔴 Bloquear Dia (Ensaio/Evento)</option>
+                            <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Título do Evento</label>
+                        <input type="text" id="titulo" required placeholder="Ex: Casamento Silva">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nome do Cliente</label>
+                        <input type="text" id="cliente" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>WhatsApp</label>
+                        <input type="tel" id="whatsapp" placeholder="(42) 99999-9999">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Início</label>
+                        <input type="datetime-local" id="inicio" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Fim</label>
+                        <input type="datetime-local" id="fim" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Local</label>
+                        <input type="text" id="local">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Link Contrato (Drive)</label>
+                        <input type="url" id="contratoUrl">
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Observações</label>
+                        <textarea id="obs" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="full-width" style="display:flex; gap:10px; margin-top:10px;">
+                        <button type="submit" id="btnSalvar" class="btn-action btn-save">Salvar Evento</button>
+                        <button type="button" onclick="resetForm()" class="btn-action" style="background:#eee;">Limpar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="tab-config" class="tab-content">
+            <h2>Configuração de Horários</h2>
+            <p>Define os horários disponíveis para agendamento online.</p>
+            <form id="configForm">
+                <div class="card"><label>Segunda</label><input type="text" data-day="1"></div>
+                <div class="card"><label>Terça</label><input type="text" data-day="2"></div>
+                <div class="card"><label>Quarta</label><input type="text" data-day="3"></div>
+                <div class="card"><label>Quinta</label><input type="text" data-day="4"></div>
+                <div class="card"><label>Sexta</label><input type="text" data-day="5"></div>
+                <div class="card"><label>Sábado</label><input type="text" data-day="6"></div>
+                <div class="card"><label>Domingo</label><input type="text" data-day="0"></div>
+                <div class="full-width" style="margin-top:20px;">
+                    <button type="button" onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar Todos</button>
+                </div>
+            </form>
+        </div>
+
     </div>
-
-    <div id="tab-config" class="tab-content">
-        <h2>Horários da Semana</h2>
-        <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">Use intervalos com traço ou horários fixos com vírgula.<br>Ex: <code>08:00-12:00, 14:00-18:00</code></p>
-        
-        <form id="configForm">
-            <div class="day-config"><label>Segunda-feira</label><input type="text" data-day="1"></div>
-            <div class="day-config"><label>Terça-feira</label><input type="text" data-day="2"></div>
-            <div class="day-config"><label>Quarta-feira</label><input type="text" data-day="3"></div>
-            <div class="day-config"><label>Quinta-feira</label><input type="text" data-day="4"></div>
-            <div class="day-config"><label>Sexta-feira</label><input type="text" data-day="5"></div>
-            <div class="day-config"><label>Sábado</label><input type="text" data-day="6"></div>
-            <div class="day-config"><label>Domingo</label><input type="text" data-day="0"></div>
-            <button type="button" onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar Horários</button>
-        </form>
-    </div>
-
-    <nav class="navbar">
-        <div class="nav-item active" onclick="switchTab('calendar')"><span class="nav-icon">📅</span>Agenda</div>
-        <div class="nav-item" onclick="switchTab('list')"><span class="nav-icon">📋</span>Lista</div>
-        <div class="nav-item" onclick="switchTab('form'); resetForm();"><span class="nav-icon">➕</span>Novo</div>
-        <div class="nav-item" onclick="switchTab('config')"><span class="nav-icon">⚙️</span>Config</div>
-    </nav>
 
     <div id="detailsModal" class="modal-overlay">
         <div class="modal-content">
@@ -152,21 +290,25 @@
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
         document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // Lógica para achar o botão certo no menu novo
+        const navItems = document.querySelectorAll('.nav-item');
         const map = {'calendar':0, 'list':1, 'form':2, 'config':3};
-        document.querySelectorAll('.nav-item')[map[tabId]].classList.add('active');
-        if(tabId === 'calendar' && calendar) calendar.updateSize();
+        if(navItems[map[tabId]]) navItems[map[tabId]].classList.add('active');
+
+        if(tabId === 'calendar' && calendar) setTimeout(() => calendar.updateSize(), 100);
         if(tabId === 'list') renderListView();
     }
 
     function initCalendar() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', headerToolbar: { left: 'title', right: 'prev,next' },
-            events: allEvents, 
-            eventClick: info => openModal(info.event)
+            initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', headerToolbar: { left: 'title', right: 'prev,next today' },
+            events: allEvents, eventClick: info => openModal(info.event)
         });
         calendar.render();
     }
 
+    // --- MANTER AS MESMAS FUNÇÕES DE ANTES ---
     function loadData() {
         fetch(SCRIPT_URL).then(res => res.json()).then(data => {
             allEvents = data.eventos || [];
@@ -192,47 +334,32 @@
             configObj[dia] = val;
         });
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'salvar_config', horarios: configObj }) })
-        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Horários"; btn.disabled = false; });
+        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Todos"; btn.disabled = false; });
     }
 
-    function clearFilter() {
-        document.getElementById('filterMonth').value = "";
-        document.getElementById('searchInput').value = "";
-        renderListView();
-    }
+    function clearFilter() { document.getElementById('filterMonth').value = ""; document.getElementById('searchInput').value = ""; renderListView(); }
 
-    // --- FUNÇÃO DE LISTA INTELIGENTE (BUSCA + FILTRO) ---
     function renderListView() {
-        const container = document.getElementById('listViewContainer'); 
-        container.innerHTML = "";
-        
-        const filterMonth = document.getElementById('filterMonth').value; // YYYY-MM
+        const container = document.getElementById('listViewContainer'); container.innerHTML = "";
+        const filterMonth = document.getElementById('filterMonth').value; 
         const searchText = document.getElementById('searchInput').value.toLowerCase();
         const now = new Date();
-
-        // Ordena por data
         const sorted = allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
         let count = 0;
 
         sorted.forEach(ev => {
             const evDate = new Date(ev.start);
             const evEnd = new Date(ev.end);
-            
-            // Dados para busca textual (Título, Descrição, Data Formatada)
             const fullText = (ev.title + (ev.description || '') + evDate.toLocaleDateString('pt-BR')).toLowerCase();
-            
             let show = false;
 
             if (searchText.length > 0) {
-                // MODO BUSCA: Ignora data, procura texto em tudo (passado e futuro)
                 if (fullText.includes(searchText)) show = true;
             } else {
-                // MODO PADRÃO: Respeita Filtros de Mês/Futuro
                 if (filterMonth) {
                     const evMonthStr = evDate.toISOString().slice(0, 7);
                     if (evMonthStr === filterMonth) show = true;
                 } else {
-                    // Sem filtro de mês: mostra apenas FUTUROS
                     if (evEnd >= now) show = true;
                 }
             }
@@ -241,57 +368,29 @@
                 count++;
                 const desc = ev.description || '';
                 const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || 'Sem nome';
-                const whatsapp = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
-
                 const div = document.createElement('div'); div.className = 'event-card';
-                div.innerHTML = `
-                    <h4>${ev.title}</h4>
-                    <p class="card-info">👤 ${cliente}</p>
-                    <p class="card-info">🕒 ${evDate.toLocaleString('pt-BR')}</p>
-                    ${whatsapp ? `<p class="card-info">📱 ${whatsapp}</p>` : ''}
-                `;
-                
-                div.onclick = () => openModal({ 
-                    id: ev.id, 
-                    title: ev.title, 
-                    start: ev.start, 
-                    end: ev.end, 
-                    extendedProps: { description: ev.description, location: ev.location } 
-                });
+                div.innerHTML = `<h4>${ev.title}</h4><p>👤 ${cliente}</p><p>🕒 ${evDate.toLocaleString('pt-BR')}</p>`;
+                div.onclick = () => openModal({ id: ev.id, title: ev.title, start: ev.start, end: ev.end, extendedProps: { description: ev.description, location: ev.location } });
                 container.appendChild(div);
             }
         });
-
-        if (count === 0) {
-            container.innerHTML = `<p style="text-align:center; color:#888; margin-top:20px;">Nenhum evento encontrado.</p>`;
-        }
+        if (count === 0) container.innerHTML = `<p style="text-align:center; color:#888;">Nenhum evento encontrado.</p>`;
     }
 
     function openModal(ev) {
         currentEventData = ev;
         const props = ev.extendedProps || {};
         const desc = props.description || ev.description || '';
-        
         const tipo = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
         const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || '-';
         const contrato = (desc.match(/CONTRATO: (http[^\s]+)/)||[])[1];
         const whats = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '-';
-        
-        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p>
-                    <p><b>Evento:</b> ${ev.title}</p>
-                    <p><b>Cliente:</b> ${cliente}</p>
-                    <p><b>WhatsApp:</b> ${whats}</p>
-                    <p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p>
-                    <p><b>Local:</b> ${props.location || ev.location || '-'}</p>`;
-        
+        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p><p><b>Evento:</b> ${ev.title}</p><p><b>Cliente:</b> ${cliente}</p><p><b>WhatsApp:</b> ${whats}</p><p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p><p><b>Local:</b> ${props.location || ev.location || '-'}</p>`;
         if(contrato) html += `<p><a href="${contrato}" target="_blank" style="color:#007bff; font-weight:bold;">📄 Abrir Contrato</a></p>`;
-        
         document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailsModal').classList.add('open');
     }
-
     function closeModal() { document.getElementById('detailsModal').classList.remove('open'); }
-
     function editCurrentEvent() {
         closeModal(); switchTab('form');
         const ev = currentEventData;
@@ -309,15 +408,12 @@
         document.getElementById('inicio').value = fmt(ev.start);
         document.getElementById('fim').value = fmt(ev.end || ev.start);
     }
-    
     function deleteCurrentEvent() {
         if(!confirm("Excluir?")) return;
         fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'excluir', id: currentEventData.id }) })
         .then(() => { closeModal(); loadData(); alert("Excluído!"); });
     }
-
     function resetForm() { document.getElementById('eventoForm').reset(); document.getElementById('acao').value = "criar"; document.getElementById('formTitle').innerText = "Novo Evento"; }
-
     function handleFormSubmit(e) {
         e.preventDefault();
         const btn = document.getElementById('btnSalvar'); btn.innerText = "..."; btn.disabled = true;

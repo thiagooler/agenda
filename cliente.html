@@ -1,0 +1,10 @@
+// Exemplo da chamada JS
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw2FNdbLsO3nCti5dvEtxr-rukWQRf8Sh3kIl7RHZ0MRGjXHgYke1dHPdc6yGIlk6qolA/exec';
+
+fetch(`${SCRIPT_URL}?tipo=cliente`)
+  .then(response => response.json())
+  .then(eventos => {
+    // Aqui o 'eventos' só terá "Indisponível" e os horários.
+    // Use isso para pintar o calendário de vermelho nas horas ocupadas.
+    console.log(eventos); 
+  });

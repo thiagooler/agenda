@@ -1,10 +1,137 @@
-// Exemplo da chamada JS
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgUdJyYNE40jlsMLEIIoH3kyq-VNLWs5Vg1R_7QbdTiEqdxXvPqTbnHdX5oASZ5i5xWA/exec';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Agendar - Studio NBV</title>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <style>
+        :root { --primary: #25D366; --bg: #f0f2f5; --busy: #e74c3c; --partial: #f39c12; }
+        body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; }
+        header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .calendar-container { flex: 1; padding: 15px; overflow-y: auto; }
+        #calendar { background: white; padding: 15px; border-radius: 12px; min-height: 400px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .option-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 10px; background: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; }
+        .option-btn:hover, .option-btn.selected { border-color: var(--primary); background: #f0fff4; }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .time-slot { padding: 10px; border: 1px solid #ddd; border-radius: 6px; text-align: center; cursor: pointer; background: #fff; }
+        .time-slot.selected { background: var(--primary); color: white; border-color: var(--primary); }
+        .time-slot.disabled { background: #eee; color: #aaa; border-color: #eee; text-decoration: line-through; pointer-events: none; }
+        input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
+        .btn-whatsapp { background: var(--primary); color: white; width: 100%; padding: 16px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 25px; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
 
-fetch(`${SCRIPT_URL}?tipo=cliente`)
-  .then(response => response.json())
-  .then(eventos => {
-    // Aqui o 'eventos' só terá "Indisponível" e os horários.
-    // Use isso para pintar o calendário de vermelho nas horas ocupadas.
-    console.log(eventos); 
-  });
+<header><h1>Agendar Horário</h1><p style="color:#666; margin:5px 0 0;">Studio NBV</p></header>
+
+<div class="calendar-container">
+    <div id='calendar'></div>
+    <div style="margin-top:15px; display:flex; gap:15px; justify-content:center; font-size:0.8rem; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#e74c3c; border-radius:50%; margin-right:5px;"></div> Bloqueado</div>
+        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#f39c12; border-radius:50%; margin-right:5px;"></div> Parcialmente Ocupado</div>
+        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#fff; border:1px solid #ddd; border-radius:50%; margin-right:5px;"></div> Livre</div>
+    </div>
+</div>
+
+<div id="bookingModal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="margin:0;">Novo Agendamento</h2>
+            <span onclick="closeModal()" style="font-size:1.5rem; cursor:pointer;">×</span>
+        </div>
+        <div id="step1">
+            <p>Para o dia <b id="selectedDateDisplay"></b>:</p>
+            <button class="option-btn" onclick="selectType('atendimento')">📷 Atendimento (1h-2h)</button>
+            <button class="option-btn" onclick="selectType('evento')">🎉 Evento (Dia Inteiro)</button>
+        </div>
+        <div id="step2" style="display:none;">
+            <button onclick="backToStep1()" style="background:none; border:none; color:#666; margin-bottom:10px;">← Voltar</button>
+            <div id="timeSelectionArea"><label>Selecione um Horário:</label><div class="time-grid" id="timeSlotsContainer"></div></div>
+            <div id="msgEvento" style="display:none; padding:15px; background:#f9f9f9; text-align:center;"><p>Reserva de dia inteiro.</p></div>
+            <div style="margin-top:15px;"><label>Seu Nome:</label><input type="text" id="clientName"><label style="margin-top:10px; display:block;">Serviço:</label><input type="text" id="serviceType"></div>
+            <button class="btn-whatsapp" onclick="sendToWhatsapp()">Solicitar no WhatsApp</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL E WHATSAPP
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
+    const MY_PHONE = '5542998370150'; 
+
+    let calendar, allEvents = [], availableHours = [], selectedDate, selectedType, selectedTime;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth', locale: 'pt-br', height: 'auto', headerToolbar: { left: 'title', right: 'prev,next' },
+            dateClick: info => {
+                if(new Date(info.dateStr) < new Date().setHours(0,0,0,0)) return alert("Data passada.");
+                // VERIFICA SE O DIA ESTÁ BLOQUEADO (NÃO É ATENDIMENTO)
+                const blocked = allEvents.find(ev => ev.start.startsWith(info.dateStr) && !ev.description.includes('TIPO: atendimento'));
+                if(blocked) return alert("Data reservada para evento exclusivo.");
+                openModal(info.dateStr);
+            },
+            events: (info, success) => {
+                fetch(SCRIPT_URL).then(r => r.json()).then(data => {
+                    if(data.config && data.config.horarios) availableHours = data.config.horarios;
+                    allEvents = data.eventos || [];
+                    const display = allEvents.map(e => {
+                        // SE FOR ATENDIMENTO = AMARELO, SENÃO = VERMELHO (BLOQUEADO)
+                        const isAtendimento = e.description && e.description.includes('TIPO: atendimento');
+                        if(isAtendimento) return { title: '•', start: e.start, color: '#f39c12' };
+                        else return { title: 'Bloqueado', start: e.start, end: e.end, display: 'background', backgroundColor: '#e74c3c' };
+                    });
+                    success(display);
+                });
+            }
+        });
+        calendar.render();
+    });
+
+    function openModal(d) {
+        selectedDate = d; document.getElementById('selectedDateDisplay').innerText = new Date(d+'T00:00:00').toLocaleDateString('pt-BR');
+        document.getElementById('step1').style.display = 'block'; document.getElementById('step2').style.display = 'none';
+        document.getElementById('bookingModal').classList.add('open');
+        selectedTime = null; selectedType = null; document.getElementById('clientName').value = ''; document.getElementById('serviceType').value = '';
+    }
+    function closeModal() { document.getElementById('bookingModal').classList.remove('open'); }
+    function backToStep1() { document.getElementById('step2').style.display = 'none'; document.getElementById('step1').style.display = 'block'; }
+
+    function selectType(type) {
+        selectedType = type; document.getElementById('step1').style.display = 'none'; document.getElementById('step2').style.display = 'block';
+        const timeContainer = document.getElementById('timeSlotsContainer');
+        if(type === 'evento') {
+            document.getElementById('timeSelectionArea').style.display = 'none'; document.getElementById('msgEvento').style.display = 'block'; selectedTime = "Dia Inteiro";
+        } else {
+            document.getElementById('timeSelectionArea').style.display = 'block'; document.getElementById('msgEvento').style.display = 'none'; timeContainer.innerHTML = '';
+            const horas = availableHours.length ? availableHours : ['09:00','10:00','14:00','15:00'];
+            const eventosDia = allEvents.filter(ev => ev.start.startsWith(selectedDate));
+            horas.forEach(h => {
+                const div = document.createElement('div'); div.className = 'time-slot'; div.innerText = h;
+                const slotTime = new Date(selectedDate + 'T' + h + ':00');
+                const ocupado = eventosDia.some(ev => slotTime >= new Date(ev.start) && slotTime < new Date(ev.end));
+                if(ocupado) { div.classList.add('disabled'); div.title="Ocupado"; }
+                else div.onclick = () => { document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); selectedTime = h; };
+                timeContainer.appendChild(div);
+            });
+        }
+    }
+
+    function sendToWhatsapp() {
+        const name = document.getElementById('clientName').value, service = document.getElementById('serviceType').value;
+        if(!name || !service) return alert("Preencha todos campos.");
+        if(selectedType === 'atendimento' && !selectedTime) return alert("Selecione horário.");
+        const dFmt = new Date(selectedDate+'T00:00:00').toLocaleDateString('pt-BR');
+        let msg = `Olá! Gostaria de agendar:\n\n*Cliente:* ${name}\n*Data:* ${dFmt}\n*Tipo:* ${selectedType.toUpperCase()}\n`;
+        if(selectedType === 'atendimento') msg += `*Horário:* ${selectedTime}\n`;
+        msg += `*Serviço:* ${service}`;
+        window.open(`https://wa.me/${MY_PHONE}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal();
+    }
+</script>
+</body>
+</html>

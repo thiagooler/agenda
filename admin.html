@@ -2,205 +2,404 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestão - Studio NBV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>App Studio NBV</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        :root { --primary: #1a1a1a; --accent: #007bff; --bg: #f4f6f8; --text: #333; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+        :root { --primary: #007bff; --danger: #dc3545; --bg: #f0f2f5; --card: #ffffff; --nav-height: 60px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        /* Cabeçalho */
-        header { background: white; padding: 15px 30px; border-bottom: 1px solid #ddd; display: flex; align-items: center; justify-content: space-between; }
-        h1 { margin: 0; font-size: 1.2rem; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; }
+        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-        /* Layout Principal */
-        .container { display: flex; flex: 1; overflow: hidden; }
+        /* --- CONTEÚDO PRINCIPAL --- */
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; /* Espaço para navbar */ }
+        .tab-content.active { display: block; }
         
-        /* Sidebar (Formulário) */
-        .sidebar { width: 320px; background: white; border-right: 1px solid #ddd; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
-        
-        /* Área da Agenda */
-        .calendar-wrapper { flex: 1; padding: 20px; overflow-y: auto; }
-        #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); min-height: 100%; }
+        /* --- NAVBAR (ABAS) --- */
+        .navbar { position: fixed; bottom: 0; width: 100%; height: var(--nav-height); background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; cursor: pointer; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; }
+        .nav-item.active { color: var(--primary); font-weight: bold; }
+        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
 
-        /* Estilos do Form */
-        label { font-size: 0.85rem; font-weight: 600; color: #666; margin-bottom: 5px; display: block; }
-        input, textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; box-sizing: border-box; transition: 0.2s; }
-        input:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        /* --- FORMULÁRIO --- */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; background: #fff; }
+        input:focus { border-color: var(--primary); outline: none; }
         
-        button#btnSalvar { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: 0.2s; width: 100%; }
-        button#btnSalvar:hover { background: #0056b3; }
-        button#btnSalvar:disabled { background: #ccc; cursor: not-allowed; }
+        .btn-action { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-save { background: var(--primary); color: white; }
+        .btn-delete { background: var(--danger); color: white; margin-top: 10px; }
+        .btn-cancel { background: #e2e6ea; color: #333; margin-top: 10px; }
 
-        /* Ajustes Mobile */
-        @media (max-width: 768px) {
-            .container { flex-direction: column; }
-            .sidebar { width: 100%; height: auto; border-right: none; border-bottom: 1px solid #ddd; }
-            .calendar-wrapper { height: 600px; }
-        }
+        /* --- CALENDÁRIO & LISTA --- */
+        .fc-header-toolbar { font-size: 0.8rem; }
+        .fc-button { padding: 5px 10px !important; }
+        
+        .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
+        .event-card h4 { margin: 0 0 5px 0; color: #333; }
+        .event-card p { margin: 2px 0; color: #666; font-size: 0.9rem; }
+
+        /* --- MODAL DE DETALHES --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
+        .modal-overlay.open { display: flex; }
+        .modal-content { background: white; width: 100%; max-height: 85vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 1.2rem; font-weight: bold; }
+        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        
+        .detail-row { margin-bottom: 10px; }
+        .detail-label { font-weight: bold; color: #555; font-size: 0.8rem; }
+        .detail-value { font-size: 1rem; color: #222; word-break: break-word; }
+        .link-contrato { color: var(--primary); text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Agenda Admin</h1>
-    <div style="font-size: 0.9rem; color: #666;">thfdsadv@gmail.com</div>
-</header>
+    <div id="tab-calendar" class="tab-content active">
+        <div id='calendar'></div>
+    </div>
 
-<div class="container">
-    <div class="sidebar">
-        <h3>Novo Evento</h3>
+    <div id="tab-list" class="tab-content">
+        <h2 style="margin-top:0;">Próximos Eventos</h2>
+        <div id="listViewContainer">
+            <p style="text-align:center; color:#888;">Carregando...</p>
+        </div>
+    </div>
+
+    <div id="tab-form" class="tab-content">
+        <h2 id="formTitle" style="margin-top:0;">Novo Evento</h2>
         <form id="eventoForm">
-            <div>
-                <label>Título do Evento</label>
+            <input type="hidden" id="eventoId"> <input type="hidden" id="acao" value="criar">
+            
+            <div class="form-group">
+                <label>Título</label>
                 <input type="text" id="titulo" placeholder="Ex: Fotos Casamento" required>
             </div>
             
-            <div>
+            <div class="form-group">
                 <label>Cliente</label>
                 <input type="text" id="cliente" required>
             </div>
 
-            <div>
+            <div class="form-group">
                 <label>WhatsApp</label>
                 <input type="tel" id="whatsapp" placeholder="(xx) xxxxx-xxxx">
             </div>
 
-            <div style="display: flex; gap: 10px;">
-                <div style="flex: 1;">
-                    <label>Início</label>
-                    <input type="datetime-local" id="inicio" required>
-                </div>
-                <div style="flex: 1;">
-                    <label>Fim</label>
-                    <input type="datetime-local" id="fim" required>
-                </div>
+            <div class="form-group">
+                <label>Início</label>
+                <input type="datetime-local" id="inicio" required>
             </div>
 
-            <div>
+            <div class="form-group">
+                <label>Fim</label>
+                <input type="datetime-local" id="fim" required>
+            </div>
+
+            <div class="form-group">
                 <label>Local</label>
                 <input type="text" id="local">
             </div>
 
-            <div>
-                <label>Link do Contrato (Drive)</label>
-                <input type="url" id="contratoUrl" placeholder="https://drive.google.com/...">
+            <div class="form-group">
+                <label>Link Contrato (Drive)</label>
+                <input type="url" id="contratoUrl">
             </div>
 
-            <div>
+            <div class="form-group">
                 <label>Obs</label>
                 <textarea id="obs" rows="3"></textarea>
             </div>
 
-            <button type="submit" id="btnSalvar">Salvar na Agenda</button>
+            <button type="submit" id="btnSalvar" class="btn-action btn-save">Salvar</button>
+            <button type="button" id="btnCancelarEdicao" class="btn-action btn-cancel" style="display:none;" onclick="resetForm()">Cancelar Edição</button>
         </form>
     </div>
 
-    <div class="calendar-wrapper">
-        <div id='calendar'></div>
+    <nav class="navbar">
+        <div class="nav-item active" onclick="switchTab('calendar')">
+            <div class="nav-icon">📅</div>
+            <span>Agenda</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('list')">
+            <div class="nav-icon">📋</div>
+            <span>Lista</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('form'); resetForm();">
+            <div class="nav-icon">➕</div>
+            <span>Novo</span>
+        </div>
+    </nav>
+
+    <div id="detailsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Detalhes do Evento</div>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div id="modalBody">
+                </div>
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="btn-action btn-save" style="margin-top:0" onclick="editCurrentEvent()">✏️ Editar</button>
+                <button class="btn-action btn-delete" style="margin-top:0" onclick="deleteCurrentEvent()">🗑️ Excluir</button>
+            </div>
+        </div>
     </div>
-</div>
 
 <script>
-    // ======================================================
-    // COLE SUA URL DO APPS SCRIPT DENTRO DAS ASPAS ABAIXO:
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxgUdJyYNE40jlsMLEIIoH3kyq-VNLWs5Vg1R_7QbdTiEqdxXvPqTbnHdX5oASZ5i5xWA/exec'; 
-    // ======================================================
+    // ==========================================
+    // COLE SUA URL NOVA DO APPS SCRIPT AQUI:
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
+    // ==========================================
 
+    let allEvents = [];
+    let currentEventData = null; // Armazena o evento aberto no modal
+    let calendar;
+
+    // --- INICIALIZAÇÃO ---
     document.addEventListener('DOMContentLoaded', function() {
-        const calendarEl = document.getElementById('calendar');
+        initCalendar();
+        loadEvents();
         
-        // Inicializa o Calendário
-        const calendar = new FullCalendar.Calendar(calendarEl, {
+        // Form Submit
+        document.getElementById('eventoForm').addEventListener('submit', handleFormSubmit);
+    });
+
+    // --- NAVEGAÇÃO ---
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById('tab-' + tabId).classList.add('active');
+        
+        // Atualiza ícone ativo
+        if(tabId === 'calendar') document.querySelector('.nav-item:nth-child(1)').classList.add('active');
+        if(tabId === 'list') {
+            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
+            renderListView();
+        }
+        if(tabId === 'form') document.querySelector('.nav-item:nth-child(3)').classList.add('active');
+
+        if(tabId === 'calendar' && calendar) calendar.updateSize();
+    }
+
+    // --- CALENDÁRIO ---
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar');
+        calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'pt-br',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,listMonth'
-            },
-            buttonText: { today: 'Hoje', month: 'Mês', list: 'Lista' },
-            height: 'auto',
-            
-            // BUSCA OS EVENTOS
-            events: function(info, successCallback, failureCallback) {
-                if (SCRIPT_URL.includes('COLE_SUA_URL')) {
-                    console.warn("URL do script não configurada.");
-                    return;
-                }
-                fetch(SCRIPT_URL)
-                    .then(res => res.json())
-                    .then(data => successCallback(data))
-                    .catch(err => {
-                        console.error(err);
-                        failureCallback(err);
-                    });
-            },
-            
-            // CLICK NO EVENTO
+            headerToolbar: { left: 'title', right: 'prev,next' },
+            height: '100%',
+            events: allEvents, // Inicia vazio, carrega depois
             eventClick: function(info) {
-                const desc = info.event.extendedProps.description || '';
-                // Tenta extrair o link do contrato da descrição se existir
-                const match = desc.match(/CONTRATO: (http[^\s]+)/);
-                let msg = `Evento: ${info.event.title}\n\n${desc}`;
-                
-                if (match && confirm(msg + '\n\nDeseja abrir o contrato agora?')) {
-                    window.open(match[1], '_blank');
-                } else {
-                    alert(msg);
-                }
+                openModal(info.event);
             }
         });
-        
         calendar.render();
+    }
 
-        // LOGICA DE SALVAR
-        const form = document.getElementById('eventoForm');
-        const btn = document.getElementById('btnSalvar');
-
-        form.addEventListener('submit', (e) => {
-            e.preventDefault();
+    // --- CARREGAR DADOS ---
+    function loadEvents() {
+        if (SCRIPT_URL.includes('COLE_AQUI')) return;
+        
+        fetch(SCRIPT_URL)
+        .then(res => res.json())
+        .then(data => {
+            allEvents = data;
             
-            if (SCRIPT_URL.includes('COLE_SUA_URL')) {
-                alert("Erro: Você esqueceu de colocar a URL do Script no código HTML!");
-                return;
-            }
+            // Atualiza Calendário
+            calendar.removeAllEvents();
+            calendar.addEventSource(allEvents);
+            
+            // Atualiza Lista (se estiver nela)
+            if(document.getElementById('tab-list').classList.contains('active')) renderListView();
+        })
+        .catch(err => console.error("Erro ao carregar:", err));
+    }
 
-            btn.disabled = true;
-            btn.innerText = "Salvando...";
-
-            const dados = {
-                titulo: document.getElementById('titulo').value,
-                cliente: document.getElementById('cliente').value,
-                whatsapp: document.getElementById('whatsapp').value,
-                inicio: document.getElementById('inicio').value,
-                fim: document.getElementById('fim').value,
-                local: document.getElementById('local').value,
-                contratoUrl: document.getElementById('contratoUrl').value,
-                obs: document.getElementById('obs').value
+    // --- RENDERIZAR LISTA ---
+    function renderListView() {
+        const container = document.getElementById('listViewContainer');
+        container.innerHTML = "";
+        
+        // Ordena por data
+        const sorted = allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
+        
+        sorted.forEach(ev => {
+            const div = document.createElement('div');
+            div.className = 'event-card';
+            const dateStr = new Date(ev.start).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', hour:'2-digit', minute:'2-digit'});
+            
+            div.innerHTML = `
+                <h4>${ev.title}</h4>
+                <p>🕒 ${dateStr}</p>
+                <p>📍 ${ev.location || 'Sem local'}</p>
+            `;
+            div.onclick = () => {
+                // Simula objeto de evento do FullCalendar para reusar openModal
+                openModal({ 
+                    id: ev.id, title: ev.title, start: ev.start, end: ev.end, 
+                    extendedProps: { description: ev.description, location: ev.location }
+                });
             };
-
-            fetch(SCRIPT_URL, {
-                method: 'POST',
-                body: JSON.stringify(dados)
-            })
-            .then(res => res.json())
-            .then(response => {
-                if(response.status === 'sucesso') {
-                    alert('Evento agendado!');
-                    form.reset();
-                    calendar.refetchEvents(); // Recarrega o calendário
-                } else {
-                    alert('Erro ao salvar: ' + (response.message || 'Desconhecido'));
-                }
-            })
-            .catch(err => alert('Erro de conexão. Verifique o console.'))
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerText = "Salvar na Agenda";
-            });
+            container.appendChild(div);
         });
-    });
+    }
+
+    // --- MODAL DE DETALHES ---
+    function openModal(eventObj) {
+        currentEventData = eventObj;
+        
+        const props = eventObj.extendedProps || {};
+        const desc = props.description || '';
+        
+        // Parse da descrição para pegar campos
+        const cliente = (desc.match(/CLIENTE: (.*)/) || [])[1] || '-';
+        const whats = (desc.match(/WHATSAPP: (.*)/) || [])[1] || '-';
+        const contrato = (desc.match(/CONTRATO: (http[^\s]+)/) || [])[1];
+        
+        let html = `
+            <div class="detail-row"><div class="detail-label">EVENTO</div><div class="detail-value">${eventObj.title}</div></div>
+            <div class="detail-row"><div class="detail-label">CLIENTE</div><div class="detail-value">${cliente}</div></div>
+            <div class="detail-row"><div class="detail-label">DATA</div><div class="detail-value">${new Date(eventObj.start).toLocaleString('pt-BR')}</div></div>
+            <div class="detail-row"><div class="detail-label">WHATSAPP</div><div class="detail-value">${whats}</div></div>
+            <div class="detail-row"><div class="detail-label">LOCAL</div><div class="detail-value">${props.location || '-'}</div></div>
+        `;
+
+        if(contrato) {
+            html += `<div class="detail-row"><div class="detail-label">CONTRATO</div><a href="${contrato}" target="_blank" class="link-contrato">📂 Abrir Contrato</a></div>`;
+        }
+
+        document.getElementById('modalBody').innerHTML = html;
+        document.getElementById('detailsModal').classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('detailsModal').classList.remove('open');
+        currentEventData = null;
+    }
+
+    // --- EDITAR ---
+    function editCurrentEvent() {
+        if(!currentEventData) return;
+        
+        closeModal();
+        switchTab('form');
+        
+        // Preenche o formulário
+        const props = currentEventData.extendedProps || {};
+        const desc = props.description || '';
+
+        document.getElementById('formTitle').innerText = "Editar Evento";
+        document.getElementById('acao').value = "editar";
+        document.getElementById('eventoId').value = currentEventData.id;
+        document.getElementById('btnCancelarEdicao').style.display = 'block';
+
+        document.getElementById('titulo').value = currentEventData.title;
+        document.getElementById('cliente').value = (desc.match(/CLIENTE: (.*)/) || [])[1] || '';
+        document.getElementById('whatsapp').value = (desc.match(/WHATSAPP: (.*)/) || [])[1] || '';
+        
+        // Formatar datas para input datetime-local (YYYY-MM-DDTHH:MM)
+        const formatForInput = (d) => {
+            const date = new Date(d);
+            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+            return date.toISOString().slice(0,16);
+        };
+        
+        document.getElementById('inicio').value = formatForInput(currentEventData.start);
+        document.getElementById('fim').value = formatForInput(currentEventData.end || currentEventData.start); // fallback
+        
+        document.getElementById('local').value = props.location || '';
+        document.getElementById('contratoUrl').value = (desc.match(/CONTRATO: (http[^\s]+)/) || [])[1] || '';
+        document.getElementById('obs').value = (desc.match(/OBS: (.*)/s) || [])[1] || '';
+    }
+
+    function deleteCurrentEvent() {
+        if(!confirm("Tem certeza que deseja excluir este evento?")) return;
+        
+        const btn = document.querySelector('.btn-delete');
+        const originalText = btn.innerText;
+        btn.innerText = "Excluindo...";
+        btn.disabled = true;
+
+        const payload = {
+            acao: 'excluir',
+            id: currentEventData.id
+        };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(resp => {
+            if(resp.status === 'sucesso') {
+                alert('Evento excluído!');
+                closeModal();
+                loadEvents(); // Recarrega tudo
+            } else {
+                alert('Erro: ' + resp.message);
+            }
+        })
+        .finally(() => {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    function resetForm() {
+        document.getElementById('eventoForm').reset();
+        document.getElementById('formTitle').innerText = "Novo Evento";
+        document.getElementById('acao').value = "criar";
+        document.getElementById('eventoId').value = "";
+        document.getElementById('btnCancelarEdicao').style.display = 'none';
+    }
+
+    // --- ENVIAR FORM (CRIAR OU EDITAR) ---
+    function handleFormSubmit(e) {
+        e.preventDefault();
+        const btn = document.getElementById('btnSalvar');
+        btn.disabled = true;
+        btn.innerText = "Processando...";
+
+        const dados = {
+            acao: document.getElementById('acao').value, // criar ou editar
+            id: document.getElementById('eventoId').value,
+            titulo: document.getElementById('titulo').value,
+            cliente: document.getElementById('cliente').value,
+            whatsapp: document.getElementById('whatsapp').value,
+            inicio: document.getElementById('inicio').value,
+            fim: document.getElementById('fim').value,
+            local: document.getElementById('local').value,
+            contratoUrl: document.getElementById('contratoUrl').value,
+            obs: document.getElementById('obs').value
+        };
+
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(dados)
+        })
+        .then(res => res.json())
+        .then(response => {
+            if(response.status === 'sucesso') {
+                alert(response.msg);
+                resetForm();
+                switchTab('calendar');
+                loadEvents();
+            } else {
+                alert('Erro: ' + response.message);
+            }
+        })
+        .catch(err => alert('Erro de conexão.'))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerText = "Salvar";
+        });
+    }
 </script>
 
 </body>

@@ -11,16 +11,20 @@
         header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
         .calendar-container { flex: 1; padding: 15px; overflow-y: auto; }
         #calendar { background: white; padding: 15px; border-radius: 12px; min-height: 400px; }
+        
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
         .modal-overlay.open { display: flex; }
         .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
         .option-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 10px; background: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; }
         .option-btn:hover, .option-btn.selected { border-color: var(--primary); background: #f0fff4; }
+        
         .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
         .time-slot { padding: 10px; border: 1px solid #ddd; border-radius: 6px; text-align: center; cursor: pointer; background: #fff; }
         .time-slot.selected { background: var(--primary); color: white; border-color: var(--primary); }
         .time-slot.disabled { background: #eee; color: #aaa; border-color: #eee; text-decoration: line-through; pointer-events: none; }
+        
         input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; margin-top: 5px; box-sizing: border-box; }
         .btn-whatsapp { background: var(--primary); color: white; width: 100%; padding: 16px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; margin-top: 25px; font-size: 1.1rem; }
     </style>
@@ -44,16 +48,29 @@
             <h2 style="margin:0;">Novo Agendamento</h2>
             <span onclick="closeModal()" style="font-size:1.5rem; cursor:pointer;">×</span>
         </div>
+        
         <div id="step1">
             <p>Para o dia <b id="selectedDateDisplay"></b>:</p>
-            <button class="option-btn" onclick="selectType('atendimento')">📷 Atendimento</button>
+            <button class="option-btn" onclick="selectType('atendimento')">📷 Atendimento (2 horas)</button>
             <button class="option-btn" onclick="selectType('evento')">🎉 Evento (Dia Inteiro)</button>
         </div>
+        
         <div id="step2" style="display:none;">
             <button onclick="backToStep1()" style="background:none; border:none; color:#666; margin-bottom:10px;">← Voltar</button>
-            <div id="timeSelectionArea"><label>Selecione um Horário:</label><div class="time-grid" id="timeSlotsContainer"></div></div>
+            
+            <div id="timeSelectionArea">
+                <label>Selecione o Horário de Início:</label>
+                <div class="time-grid" id="timeSlotsContainer"></div>
+                <small style="display:block; margin-top:5px; color:#666;">Considerando duração de 2h.</small>
+            </div>
+            
             <div id="msgEvento" style="display:none; padding:15px; background:#f9f9f9; text-align:center;"><p>Reserva de dia inteiro.</p></div>
-            <div style="margin-top:15px;"><label>Seu Nome:</label><input type="text" id="clientName"><label style="margin-top:10px; display:block;">Serviço:</label><input type="text" id="serviceType"></div>
+            
+            <div style="margin-top:15px;">
+                <label>Seu Nome:</label><input type="text" id="clientName">
+                <label style="margin-top:10px; display:block;">Serviço:</label><input type="text" id="serviceType">
+            </div>
+            
             <button class="btn-whatsapp" onclick="sendToWhatsapp()">Solicitar no WhatsApp</button>
         </div>
     </div>
@@ -62,6 +79,7 @@
 <script>
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
     const MY_PHONE = '5542998370150'; 
+    const DURACAO_ATENDIMENTO = 2; // Duração em horas
 
     let calendar, allEvents = [], configHorarios = {}, selectedDate, selectedType, selectedTime;
 
@@ -70,7 +88,6 @@
             initialView: 'dayGridMonth', locale: 'pt-br', height: 'auto', headerToolbar: { left: 'title', right: 'prev,next' },
             dateClick: info => {
                 if(new Date(info.dateStr) < new Date().setHours(0,0,0,0)) return alert("Data passada.");
-                // VERIFICA SE O DIA ESTÁ BLOQUEADO (NÃO É ATENDIMENTO)
                 const blocked = allEvents.find(ev => ev.start.startsWith(info.dateStr) && !ev.description.includes('TIPO: atendimento'));
                 if(blocked) return alert("Data reservada para evento exclusivo.");
                 openModal(info.dateStr);
@@ -100,30 +117,73 @@
     function closeModal() { document.getElementById('bookingModal').classList.remove('open'); }
     function backToStep1() { document.getElementById('step2').style.display = 'none'; document.getElementById('step1').style.display = 'block'; }
 
+    function gerarListaHorarios(configArray) {
+        let listaFinal = [];
+        if(!configArray) return [];
+        configArray.forEach(item => {
+            if (item.includes('-')) {
+                const [inicio, fim] = item.split('-').map(h => h.trim());
+                let [hAtual, mAtual] = inicio.split(':').map(Number);
+                const [hFim, mFim] = fim.split(':').map(Number);
+                let minAtual = hAtual * 60 + mAtual;
+                let minFim = hFim * 60 + mFim;
+                while (minAtual < minFim) {
+                    const h = Math.floor(minAtual / 60);
+                    const m = minAtual % 60;
+                    listaFinal.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
+                    minAtual += 60; 
+                }
+            } else { listaFinal.push(item.trim()); }
+        });
+        return [...new Set(listaFinal)].sort();
+    }
+
     function selectType(type) {
         selectedType = type; document.getElementById('step1').style.display = 'none'; document.getElementById('step2').style.display = 'block';
         const timeContainer = document.getElementById('timeSlotsContainer');
+        
         if(type === 'evento') {
             document.getElementById('timeSelectionArea').style.display = 'none'; document.getElementById('msgEvento').style.display = 'block'; selectedTime = "Dia Inteiro";
         } else {
             document.getElementById('timeSelectionArea').style.display = 'block'; document.getElementById('msgEvento').style.display = 'none'; timeContainer.innerHTML = '';
             
-            // LOGICA NOVA: PEGA HORÁRIOS DO DIA DA SEMANA
-            // getDay() retorna 0 (Dom) a 6 (Sab)
             const diaDaSemana = new Date(selectedDate + 'T00:00:00').getDay();
-            const horasDisponiveis = configHorarios[diaDaSemana] || []; // Se não tiver nada, retorna vazio
-            
+            const configDoDia = configHorarios[diaDaSemana] || [];
+            const horasDisponiveis = gerarListaHorarios(configDoDia);
+
             if(horasDisponiveis.length === 0) {
-                timeContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666;">Não atendemos neste dia da semana.</p>';
+                timeContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666;">Não atendemos neste dia.</p>';
             }
 
+            // EVENTOS JÁ EXISTENTES NO DIA
             const eventosDia = allEvents.filter(ev => ev.start.startsWith(selectedDate));
+
             horasDisponiveis.forEach(h => {
                 const div = document.createElement('div'); div.className = 'time-slot'; div.innerText = h;
-                const slotTime = new Date(selectedDate + 'T' + h + ':00');
-                const ocupado = eventosDia.some(ev => slotTime >= new Date(ev.start) && slotTime < new Date(ev.end));
-                if(ocupado) { div.classList.add('disabled'); div.title="Ocupado"; }
-                else div.onclick = () => { document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected')); div.classList.add('selected'); selectedTime = h; };
+                
+                // --- LÓGICA DE COLISÃO DE 2 HORAS ---
+                // Cria data de INÍCIO do slot proposto
+                const slotInicio = new Date(selectedDate + 'T' + h + ':00');
+                // Cria data de FIM do slot proposto (+2 horas)
+                const slotFim = new Date(slotInicio.getTime() + (DURACAO_ATENDIMENTO * 60 * 60 * 1000));
+
+                // Verifica se ESSE intervalo colide com QUALQUER evento existente
+                const conflito = eventosDia.some(ev => {
+                    const evInicio = new Date(ev.start);
+                    const evFim = new Date(ev.end);
+                    // Fórmula de intersecção de tempo: (InicioA < FimB) && (FimA > InicioB)
+                    return (slotInicio < evFim && slotFim > evInicio);
+                });
+
+                if(conflito) { 
+                    div.classList.add('disabled'); div.title="Horário insuficiente (conflito ou ocupado)"; 
+                } else { 
+                    div.onclick = () => { 
+                        document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected')); 
+                        div.classList.add('selected'); 
+                        selectedTime = h; 
+                    }; 
+                }
                 timeContainer.appendChild(div);
             });
         }
@@ -133,9 +193,18 @@
         const name = document.getElementById('clientName').value, service = document.getElementById('serviceType').value;
         if(!name || !service) return alert("Preencha todos campos.");
         if(selectedType === 'atendimento' && !selectedTime) return alert("Selecione horário.");
+        
         const dFmt = new Date(selectedDate+'T00:00:00').toLocaleDateString('pt-BR');
         let msg = `Olá! Gostaria de agendar:\n\n*Cliente:* ${name}\n*Data:* ${dFmt}\n*Tipo:* ${selectedType.toUpperCase()}\n`;
-        if(selectedType === 'atendimento') msg += `*Horário:* ${selectedTime}\n`;
+        
+        if(selectedType === 'atendimento') {
+            // Calcula horário final para mostrar no zap
+            const [h, m] = selectedTime.split(':').map(Number);
+            const fimH = (h + DURACAO_ATENDIMENTO) % 24;
+            const fimStr = String(fimH).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+            msg += `*Horário:* ${selectedTime} às ${fimStr} (2h)\n`;
+        }
+        
         msg += `*Serviço:* ${service}`;
         window.open(`https://wa.me/${MY_PHONE}?text=${encodeURIComponent(msg)}`, '_blank'); closeModal();
     }

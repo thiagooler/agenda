@@ -6,17 +6,41 @@
     <title>Agendar - Studio NBV</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        :root { --primary: #25D366; --bg: #f0f2f5; --busy: #e74c3c; --partial: #f39c12; }
+        :root { 
+            --primary: #25D366; 
+            --bg: #f0f2f5; 
+            --red-busy: #d32f2f; /* Vermelho mais forte */
+            --green-free: #e8f5e9; /* Verde bem clarinho para o fundo */
+        }
         body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); display: flex; flex-direction: column; height: 100vh; }
-        header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .calendar-container { flex: 1; padding: 15px; overflow-y: auto; }
-        #calendar { background: white; padding: 15px; border-radius: 12px; min-height: 400px; }
         
+        header { background: white; padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        
+        .calendar-container { flex: 1; padding: 15px; overflow-y: auto; }
+        #calendar { background: white; padding: 15px; border-radius: 12px; min-height: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+
+        /* --- ESTILOS DO CALENDÁRIO --- */
+        /* Deixar os dias com fundo verde claro (Disponível) */
+        .fc-daygrid-day { background-color: var(--green-free); transition: 0.2s; }
+        .fc-daygrid-day:hover { filter: brightness(0.95); cursor: pointer; }
+        
+        /* Eventos de Bloqueio (Vermelhos) */
+        .fc-event { 
+            border: none !important; 
+            border-radius: 4px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            text-align: center;
+            padding: 2px;
+        }
+        .fc-event-title { font-weight: bold; font-size: 0.85rem; }
+
+        /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; display: none; align-items: flex-end; justify-content: center; }
         .modal-overlay.open { display: flex; }
         .modal-content { background: white; width: 100%; max-width: 500px; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         
+        /* BOTÕES E INPUTS */
         .option-btn { width: 100%; padding: 15px; margin-bottom: 10px; border: 2px solid #ddd; border-radius: 10px; background: white; font-weight: bold; cursor: pointer; display: flex; align-items: center; }
         .option-btn:hover, .option-btn.selected { border-color: var(--primary); background: #f0fff4; }
         
@@ -35,10 +59,9 @@
 
 <div class="calendar-container">
     <div id='calendar'></div>
-    <div style="margin-top:15px; display:flex; gap:15px; justify-content:center; font-size:0.8rem; flex-wrap:wrap;">
-        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#e74c3c; border-radius:50%; margin-right:5px;"></div> Bloqueado</div>
-        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#f39c12; border-radius:50%; margin-right:5px;"></div> Parcialmente Ocupado</div>
-        <div style="display:flex; align-items:center;"><div style="width:10px; height:10px; background:#fff; border:1px solid #ddd; border-radius:50%; margin-right:5px;"></div> Livre</div>
+    <div style="margin-top:15px; display:flex; gap:20px; justify-content:center; font-size:0.9rem; font-weight: bold;">
+        <div style="display:flex; align-items:center;"><div style="width:15px; height:15px; background:var(--green-free); border:1px solid #ccc; border-radius:4px; margin-right:5px;"></div> Disponível</div>
+        <div style="display:flex; align-items:center;"><div style="width:15px; height:15px; background:var(--red-busy); border-radius:4px; margin-right:5px;"></div> Indisponível</div>
     </div>
 </div>
 
@@ -61,7 +84,7 @@
             <div id="timeSelectionArea">
                 <label>Selecione o Horário de Início:</label>
                 <div class="time-grid" id="timeSlotsContainer"></div>
-                <small style="display:block; margin-top:5px; color:#666;">Considerando duração de 2h.</small>
+                <small style="display:block; margin-top:5px; color:#666;">Duração prevista: 2h.</small>
             </div>
             
             <div id="msgEvento" style="display:none; padding:15px; background:#f9f9f9; text-align:center;"><p>Reserva de dia inteiro.</p></div>
@@ -77,37 +100,72 @@
 </div>
 
 <script>
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjUCPrTr-c_WDZMZNACATAl7zswPbg03XYDk4Vn6kDDUn-LsdJ1hXspNWQNdSVytlVIw/exec';
+    // ============================================
+    // ATUALIZE AQUI COM SEU LINK NOVO:
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
+    
     const MY_PHONE = '5542998370150'; 
-    const DURACAO_ATENDIMENTO = 2; // Duração em horas
+    const DURACAO_ATENDIMENTO = 2; 
+    // ============================================
 
     let calendar, allEvents = [], configHorarios = {}, selectedDate, selectedType, selectedTime;
 
     document.addEventListener('DOMContentLoaded', function() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            initialView: 'dayGridMonth', locale: 'pt-br', height: 'auto', headerToolbar: { left: 'title', right: 'prev,next' },
-            dateClick: info => {
-                if(new Date(info.dateStr) < new Date().setHours(0,0,0,0)) return alert("Data passada.");
-                const blocked = allEvents.find(ev => ev.start.startsWith(info.dateStr) && !ev.description.includes('TIPO: atendimento'));
-                if(blocked) return alert("Data reservada para evento exclusivo.");
-                openModal(info.dateStr);
-            },
+            initialView: 'dayGridMonth', 
+            locale: 'pt-br', 
+            height: 'auto', 
+            headerToolbar: { left: 'title', right: 'prev,next' },
+            
+            // CORES E EVENTOS
             events: (info, success) => {
                 fetch(SCRIPT_URL).then(r => r.json()).then(data => {
                     if(data.config && data.config.horarios) configHorarios = data.config.horarios;
                     allEvents = data.eventos || [];
-                    const display = allEvents.map(e => {
+                    
+                    // FILTRO VISUAL:
+                    // Se for 'atendimento', NÃO MOSTRA nada (deixa o dia verde).
+                    // Se for 'bloqueio', MOSTRA vermelho escrito Indisponível.
+                    const displayEvents = [];
+                    
+                    allEvents.forEach(e => {
                         const isAtendimento = e.description && e.description.includes('TIPO: atendimento');
-                        if(isAtendimento) return { title: '•', start: e.start, color: '#f39c12' };
-                        else return { title: 'Bloqueado', start: e.start, end: e.end, display: 'background', backgroundColor: '#e74c3c' };
+                        if(!isAtendimento) {
+                            // É BLOQUEIO TOTAL
+                            displayEvents.push({
+                                title: 'Indisponível', 
+                                start: e.start, 
+                                end: e.end, 
+                                backgroundColor: '#d32f2f', // Vermelho
+                                textColor: '#ffffff',
+                                allDay: true // Garante que ocupa o dia todo visualmente
+                            });
+                        }
                     });
-                    success(display);
+                    
+                    success(displayEvents);
                 });
+            },
+
+            // CLIQUE NA DATA
+            dateClick: info => {
+                if(new Date(info.dateStr) < new Date().setHours(0,0,0,0)) return alert("Data passada.");
+                
+                // Verifica se tem bloqueio TOTAL neste dia
+                const blocked = allEvents.find(ev => 
+                    ev.start.startsWith(info.dateStr) && 
+                    !ev.description.includes('TIPO: atendimento') // Se NÃO for atendimento, é bloqueio
+                );
+                
+                if(blocked) return alert("Esta data está indisponível.");
+                
+                openModal(info.dateStr);
             }
         });
         calendar.render();
     });
 
+    // --- LÓGICA DO MODAL (Igual a anterior) ---
     function openModal(d) {
         selectedDate = d; document.getElementById('selectedDateDisplay').innerText = new Date(d+'T00:00:00').toLocaleDateString('pt-BR');
         document.getElementById('step1').style.display = 'block'; document.getElementById('step2').style.display = 'none';
@@ -155,28 +213,22 @@
                 timeContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666;">Não atendemos neste dia.</p>';
             }
 
-            // EVENTOS JÁ EXISTENTES NO DIA
             const eventosDia = allEvents.filter(ev => ev.start.startsWith(selectedDate));
 
             horasDisponiveis.forEach(h => {
                 const div = document.createElement('div'); div.className = 'time-slot'; div.innerText = h;
                 
-                // --- LÓGICA DE COLISÃO DE 2 HORAS ---
-                // Cria data de INÍCIO do slot proposto
                 const slotInicio = new Date(selectedDate + 'T' + h + ':00');
-                // Cria data de FIM do slot proposto (+2 horas)
                 const slotFim = new Date(slotInicio.getTime() + (DURACAO_ATENDIMENTO * 60 * 60 * 1000));
 
-                // Verifica se ESSE intervalo colide com QUALQUER evento existente
                 const conflito = eventosDia.some(ev => {
                     const evInicio = new Date(ev.start);
                     const evFim = new Date(ev.end);
-                    // Fórmula de intersecção de tempo: (InicioA < FimB) && (FimA > InicioB)
                     return (slotInicio < evFim && slotFim > evInicio);
                 });
 
                 if(conflito) { 
-                    div.classList.add('disabled'); div.title="Horário insuficiente (conflito ou ocupado)"; 
+                    div.classList.add('disabled'); div.title="Horário ocupado"; 
                 } else { 
                     div.onclick = () => { 
                         document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected')); 
@@ -198,7 +250,6 @@
         let msg = `Olá! Gostaria de agendar:\n\n*Cliente:* ${name}\n*Data:* ${dFmt}\n*Tipo:* ${selectedType.toUpperCase()}\n`;
         
         if(selectedType === 'atendimento') {
-            // Calcula horário final para mostrar no zap
             const [h, m] = selectedTime.split(':').map(Number);
             const fimH = (h + DURACAO_ATENDIMENTO) % 24;
             const fimStr = String(fimH).padStart(2,'0') + ':' + String(m).padStart(2,'0');

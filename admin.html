@@ -255,7 +255,7 @@
                     <div class="form-group full-width" style="background: #eef2ff; padding: 20px; border-radius: 10px; border: 1px solid #c7d2fe;">
                         <label style="color:var(--primary);">Tipo de Evento</label>
                         <select id="tipoBloqueio" required style="border-color: #a5b4fc;">
-                            <option value="bloqueio">🔴 Bloqueio Total (Ensaio/Evento)</option>
+                            <option value="bloqueio">🔴 Evento (Bloqueio Total)</option>
                             <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
                         </select>
                     </div>
@@ -428,10 +428,10 @@
                 // Define cor da borda baseado no tipo
                 div.style.borderLeftColor = tipo === 'atendimento' ? '#22c55e' : '#ef4444';
 
-                // Badges bonitas
+                // Badges bonitas - AQUI ESTÁ A MUDANÇA (Evento vs Atendimento)
                 const badgeHtml = tipo === 'atendimento' 
                     ? `<span class="badge atend">Atendimento</span>` 
-                    : `<span class="badge block">Bloqueio</span>`;
+                    : `<span class="badge block">Evento</span>`;
 
                 div.innerHTML = `
                     <div style="flex:1;">
@@ -463,7 +463,7 @@
         let html = `
             <div style="margin-bottom:15px;">
                 <span class="badge ${tipo === 'atendimento' ? 'atend' : 'block'}" style="font-size:0.9rem;">
-                    ${tipo === 'atendimento' ? 'Atendimento' : 'Bloqueio Total'}
+                    ${tipo === 'atendimento' ? 'Atendimento' : 'Evento'}
                 </span>
             </div>
             <p><b>Evento:</b> ${ev.title}</p>

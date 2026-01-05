@@ -46,7 +46,7 @@
         </div>
         <div id="step1">
             <p>Para o dia <b id="selectedDateDisplay"></b>:</p>
-            <button class="option-btn" onclick="selectType('atendimento')">📷 Atendimento (1h-2h)</button>
+            <button class="option-btn" onclick="selectType('atendimento')">📷 Atendimento</button>
             <button class="option-btn" onclick="selectType('evento')">🎉 Evento (Dia Inteiro)</button>
         </div>
         <div id="step2" style="display:none;">
@@ -60,11 +60,10 @@
 </div>
 
 <script>
-    // URL E WHATSAPP
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
     const MY_PHONE = '5542998370150'; 
 
-    let calendar, allEvents = [], availableHours = [], selectedDate, selectedType, selectedTime;
+    let calendar, allEvents = [], configHorarios = {}, selectedDate, selectedType, selectedTime;
 
     document.addEventListener('DOMContentLoaded', function() {
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
@@ -78,10 +77,9 @@
             },
             events: (info, success) => {
                 fetch(SCRIPT_URL).then(r => r.json()).then(data => {
-                    if(data.config && data.config.horarios) availableHours = data.config.horarios;
+                    if(data.config && data.config.horarios) configHorarios = data.config.horarios;
                     allEvents = data.eventos || [];
                     const display = allEvents.map(e => {
-                        // SE FOR ATENDIMENTO = AMARELO, SENÃO = VERMELHO (BLOQUEADO)
                         const isAtendimento = e.description && e.description.includes('TIPO: atendimento');
                         if(isAtendimento) return { title: '•', start: e.start, color: '#f39c12' };
                         else return { title: 'Bloqueado', start: e.start, end: e.end, display: 'background', backgroundColor: '#e74c3c' };
@@ -109,9 +107,18 @@
             document.getElementById('timeSelectionArea').style.display = 'none'; document.getElementById('msgEvento').style.display = 'block'; selectedTime = "Dia Inteiro";
         } else {
             document.getElementById('timeSelectionArea').style.display = 'block'; document.getElementById('msgEvento').style.display = 'none'; timeContainer.innerHTML = '';
-            const horas = availableHours.length ? availableHours : ['09:00','10:00','14:00','15:00'];
+            
+            // LOGICA NOVA: PEGA HORÁRIOS DO DIA DA SEMANA
+            // getDay() retorna 0 (Dom) a 6 (Sab)
+            const diaDaSemana = new Date(selectedDate + 'T00:00:00').getDay();
+            const horasDisponiveis = configHorarios[diaDaSemana] || []; // Se não tiver nada, retorna vazio
+            
+            if(horasDisponiveis.length === 0) {
+                timeContainer.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#666;">Não atendemos neste dia da semana.</p>';
+            }
+
             const eventosDia = allEvents.filter(ev => ev.start.startsWith(selectedDate));
-            horas.forEach(h => {
+            horasDisponiveis.forEach(h => {
                 const div = document.createElement('div'); div.className = 'time-slot'; div.innerText = h;
                 const slotTime = new Date(selectedDate + 'T' + h + ':00');
                 const ocupado = eventosDia.some(ev => slotTime >= new Date(ev.start) && slotTime < new Date(ev.end));

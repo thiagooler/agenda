@@ -3,372 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>App Studio NBV</title>
+    <title>Admin Studio NBV</title>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <style>
-        :root { --primary: #007bff; --danger: #dc3545; --bg: #f0f2f5; --card: #ffffff; --nav-height: 60px; }
+        :root { --primary: #007bff; --danger: #dc3545; --bg: #f0f2f5; --nav-height: 60px; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-
-        /* --- CONTEÚDO PRINCIPAL --- */
-        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; /* Espaço para navbar */ }
+        body { margin: 0; padding: 0; background: var(--bg); font-family: -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; }
         .tab-content.active { display: block; }
-        
-        /* --- NAVBAR (ABAS) --- */
-        .navbar { position: fixed; bottom: 0; width: 100%; height: var(--nav-height); background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
-        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; cursor: pointer; font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; }
+        .navbar { position: fixed; bottom: 0; width: 100%; height: var(--nav-height); background: white; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #ddd; z-index: 1000; }
+        .nav-item { flex: 1; text-align: center; padding: 10px; color: #888; font-size: 0.8rem; }
         .nav-item.active { color: var(--primary); font-weight: bold; }
-        .nav-icon { font-size: 1.2rem; margin-bottom: 2px; }
-
-        /* --- FORMULÁRIO --- */
+        .nav-icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; font-size: 0.9rem; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; background: #fff; }
-        input:focus { border-color: var(--primary); outline: none; }
-        
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
+        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
         .btn-action { width: 100%; padding: 15px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .btn-save { background: var(--primary); color: white; }
-        .btn-delete { background: var(--danger); color: white; margin-top: 10px; }
-        .btn-cancel { background: #e2e6ea; color: #333; margin-top: 10px; }
-
-        /* --- CALENDÁRIO & LISTA --- */
-        .fc-header-toolbar { font-size: 0.8rem; }
-        .fc-button { padding: 5px 10px !important; }
-        
-        .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; }
-        .event-card h4 { margin: 0 0 5px 0; color: #333; }
-        .event-card p { margin: 2px 0; color: #666; font-size: 0.9rem; }
-
-        /* --- MODAL DE DETALHES --- */
+        .btn-delete { background: var(--danger); color: white; }
+        .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
         .modal-overlay.open { display: flex; }
-        .modal-content { background: white; width: 100%; max-height: 85vh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s ease-out; }
+        .modal-content { background: white; width: 100%; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 25px; animation: slideUp 0.3s; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-title { font-size: 1.2rem; font-weight: bold; }
-        .close-btn { background: none; border: none; font-size: 1.5rem; cursor: pointer; }
-        
-        .detail-row { margin-bottom: 10px; }
-        .detail-label { font-weight: bold; color: #555; font-size: 0.8rem; }
-        .detail-value { font-size: 1rem; color: #222; word-break: break-word; }
-        .link-contrato { color: var(--primary); text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div id="tab-calendar" class="tab-content active">
-        <div id='calendar'></div>
-    </div>
+    <div id="tab-calendar" class="tab-content active"><div id='calendar'></div></div>
 
     <div id="tab-list" class="tab-content">
-        <h2 style="margin-top:0;">Próximos Eventos</h2>
-        <div id="listViewContainer">
-            <p style="text-align:center; color:#888;">Carregando...</p>
-        </div>
+        <h2 style="margin-top:0;">Eventos</h2><div id="listViewContainer">Carregando...</div>
     </div>
 
     <div id="tab-form" class="tab-content">
-        <h2 id="formTitle" style="margin-top:0;">Novo Evento</h2>
+        <h2 id="formTitle">Novo Evento</h2>
         <form id="eventoForm">
-            <input type="hidden" id="eventoId"> <input type="hidden" id="acao" value="criar">
+            <input type="hidden" id="eventoId"><input type="hidden" id="acao" value="criar">
             
-            <div class="form-group">
-                <label>Título</label>
-                <input type="text" id="titulo" placeholder="Ex: Fotos Casamento" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Cliente</label>
-                <input type="text" id="cliente" required>
-            </div>
-
-            <div class="form-group">
-                <label>WhatsApp</label>
-                <input type="tel" id="whatsapp" placeholder="(xx) xxxxx-xxxx">
+            <div class="form-group" style="background: #e3f2fd; padding: 10px; border-radius: 8px; border: 1px solid #90caf9;">
+                <label>Tipo de Agendamento</label>
+                <select id="tipoBloqueio" required>
+                    <option value="bloqueio">🔴 Bloquear Dia (Ensaio/Evento)</option>
+                    <option value="atendimento">🟢 Atendimento (Permite Encaixe)</option>
+                </select>
+                <small style="color:#666; display:block; margin-top:5px;">Se escolher "Bloquear", o dia inteiro ficará indisponível para clientes.</small>
             </div>
 
-            <div class="form-group">
-                <label>Início</label>
-                <input type="datetime-local" id="inicio" required>
-            </div>
-
-            <div class="form-group">
-                <label>Fim</label>
-                <input type="datetime-local" id="fim" required>
-            </div>
-
-            <div class="form-group">
-                <label>Local</label>
-                <input type="text" id="local">
-            </div>
-
-            <div class="form-group">
-                <label>Link Contrato (Drive)</label>
-                <input type="url" id="contratoUrl">
-            </div>
-
-            <div class="form-group">
-                <label>Obs</label>
-                <textarea id="obs" rows="3"></textarea>
-            </div>
-
+            <div class="form-group"><label>Título</label><input type="text" id="titulo" required></div>
+            <div class="form-group"><label>Cliente</label><input type="text" id="cliente" required></div>
+            <div class="form-group"><label>WhatsApp</label><input type="tel" id="whatsapp"></div>
+            <div class="form-group"><label>Início</label><input type="datetime-local" id="inicio" required></div>
+            <div class="form-group"><label>Fim</label><input type="datetime-local" id="fim" required></div>
+            <div class="form-group"><label>Local</label><input type="text" id="local"></div>
+            <div class="form-group"><label>Contrato (Link)</label><input type="url" id="contratoUrl"></div>
+            <div class="form-group"><label>Obs</label><textarea id="obs" rows="3"></textarea></div>
             <button type="submit" id="btnSalvar" class="btn-action btn-save">Salvar</button>
-            <button type="button" id="btnCancelarEdicao" class="btn-action btn-cancel" style="display:none;" onclick="resetForm()">Cancelar Edição</button>
+            <button type="button" onclick="resetForm()" class="btn-action" style="background:#eee;">Limpar</button>
         </form>
     </div>
 
+    <div id="tab-config" class="tab-content">
+        <h2>Horários de Atendimento</h2>
+        <div class="form-group"><label>Lista de Horários</label><textarea id="configHorarios" rows="5"></textarea></div>
+        <button onclick="saveConfig()" id="btnSaveConfig" class="btn-action btn-save">Atualizar</button>
+    </div>
+
     <nav class="navbar">
-        <div class="nav-item active" onclick="switchTab('calendar')">
-            <div class="nav-icon">📅</div>
-            <span>Agenda</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('list')">
-            <div class="nav-icon">📋</div>
-            <span>Lista</span>
-        </div>
-        <div class="nav-item" onclick="switchTab('form'); resetForm();">
-            <div class="nav-icon">➕</div>
-            <span>Novo</span>
-        </div>
+        <div class="nav-item active" onclick="switchTab('calendar')"><span class="nav-icon">📅</span>Agenda</div>
+        <div class="nav-item" onclick="switchTab('list')"><span class="nav-icon">📋</span>Lista</div>
+        <div class="nav-item" onclick="switchTab('form'); resetForm();"><span class="nav-icon">➕</span>Novo</div>
+        <div class="nav-item" onclick="switchTab('config')"><span class="nav-icon">⚙️</span>Config</div>
     </nav>
 
     <div id="detailsModal" class="modal-overlay">
         <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">Detalhes do Evento</div>
-                <button class="close-btn" onclick="closeModal()">×</button>
-            </div>
-            <div id="modalBody">
-                </div>
-            <div style="margin-top: 20px; display: flex; gap: 10px;">
-                <button class="btn-action btn-save" style="margin-top:0" onclick="editCurrentEvent()">✏️ Editar</button>
-                <button class="btn-action btn-delete" style="margin-top:0" onclick="deleteCurrentEvent()">🗑️ Excluir</button>
+            <div style="display:flex; justify-content:space-between;"><h3>Detalhes</h3><span onclick="closeModal()" style="font-size:1.5rem; cursor:pointer;">×</span></div>
+            <div id="modalBody"></div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn-action btn-save" onclick="editCurrentEvent()">✏️ Editar</button>
+                <button class="btn-action btn-delete" onclick="deleteCurrentEvent()">🗑️ Excluir</button>
             </div>
         </div>
     </div>
 
 <script>
-    // ==========================================
-    // COLE SUA URL NOVA DO APPS SCRIPT AQUI:
+    // URL DO SEU SCRIPT
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxbQzVtg6Q0yqbRqbDrFawP70Lg2FfZfB9GY3RI_LB-6yFewjaUM5EUMbzthZThyYZvXg/exec';
-    // ==========================================
 
-    let allEvents = [];
-    let currentEventData = null; // Armazena o evento aberto no modal
-    let calendar;
+    let allEvents = [], currentEventData = null, calendar;
 
-    // --- INICIALIZAÇÃO ---
     document.addEventListener('DOMContentLoaded', function() {
-        initCalendar();
-        loadEvents();
-        
-        // Form Submit
+        initCalendar(); loadData();
         document.getElementById('eventoForm').addEventListener('submit', handleFormSubmit);
     });
 
-    // --- NAVEGAÇÃO ---
     function switchTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        
         document.getElementById('tab-' + tabId).classList.add('active');
-        
-        // Atualiza ícone ativo
-        if(tabId === 'calendar') document.querySelector('.nav-item:nth-child(1)').classList.add('active');
-        if(tabId === 'list') {
-            document.querySelector('.nav-item:nth-child(2)').classList.add('active');
-            renderListView();
-        }
-        if(tabId === 'form') document.querySelector('.nav-item:nth-child(3)').classList.add('active');
-
+        const map = {'calendar':0, 'list':1, 'form':2, 'config':3};
+        document.querySelectorAll('.nav-item')[map[tabId]].classList.add('active');
         if(tabId === 'calendar' && calendar) calendar.updateSize();
+        if(tabId === 'list') renderListView();
     }
 
-    // --- CALENDÁRIO ---
     function initCalendar() {
-        const calendarEl = document.getElementById('calendar');
-        calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'pt-br',
-            headerToolbar: { left: 'title', right: 'prev,next' },
-            height: '100%',
-            events: allEvents, // Inicia vazio, carrega depois
-            eventClick: function(info) {
-                openModal(info.event);
-            }
+        calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+            initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', headerToolbar: { left: 'title', right: 'prev,next' },
+            events: allEvents, eventClick: info => openModal(info.event)
         });
         calendar.render();
     }
 
-    // --- CARREGAR DADOS ---
-    function loadEvents() {
-        if (SCRIPT_URL.includes('COLE_AQUI')) return;
-        
-        fetch(SCRIPT_URL)
-        .then(res => res.json())
-        .then(data => {
-            allEvents = data;
-            
-            // Atualiza Calendário
+    function loadData() {
+        fetch(SCRIPT_URL).then(res => res.json()).then(data => {
+            allEvents = data.eventos || [];
             calendar.removeAllEvents();
             calendar.addEventSource(allEvents);
-            
-            // Atualiza Lista (se estiver nela)
+            if(data.config && data.config.horarios) document.getElementById('configHorarios').value = data.config.horarios.join(', ');
             if(document.getElementById('tab-list').classList.contains('active')) renderListView();
-        })
-        .catch(err => console.error("Erro ao carregar:", err));
+        });
     }
 
-    // --- RENDERIZAR LISTA ---
+    function saveConfig() {
+        const btn = document.getElementById('btnSaveConfig'); btn.innerText = "..."; btn.disabled = true;
+        const horariosArr = document.getElementById('configHorarios').value.split(',').map(h => h.trim()).filter(h => h !== "");
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'salvar_config', horarios: horariosArr }) })
+        .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar"; btn.disabled = false; });
+    }
+
     function renderListView() {
-        const container = document.getElementById('listViewContainer');
-        container.innerHTML = "";
-        
-        // Ordena por data
-        const sorted = allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
-        
-        sorted.forEach(ev => {
-            const div = document.createElement('div');
-            div.className = 'event-card';
-            const dateStr = new Date(ev.start).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', hour:'2-digit', minute:'2-digit'});
-            
-            div.innerHTML = `
-                <h4>${ev.title}</h4>
-                <p>🕒 ${dateStr}</p>
-                <p>📍 ${ev.location || 'Sem local'}</p>
-            `;
-            div.onclick = () => {
-                // Simula objeto de evento do FullCalendar para reusar openModal
-                openModal({ 
-                    id: ev.id, title: ev.title, start: ev.start, end: ev.end, 
-                    extendedProps: { description: ev.description, location: ev.location }
-                });
-            };
+        const container = document.getElementById('listViewContainer'); container.innerHTML = "";
+        allEvents.sort((a,b) => new Date(a.start) - new Date(b.start)).forEach(ev => {
+            const div = document.createElement('div'); div.className = 'event-card';
+            div.innerHTML = `<h4>${ev.title}</h4><p>🕒 ${new Date(ev.start).toLocaleString('pt-BR')}</p>`;
+            div.onclick = () => openModal({ id: ev.id, title: ev.title, start: ev.start, end: ev.end, extendedProps: { description: ev.description, location: ev.location } });
             container.appendChild(div);
         });
     }
 
-    // --- MODAL DE DETALHES ---
-    function openModal(eventObj) {
-        currentEventData = eventObj;
+    function openModal(ev) {
+        currentEventData = ev;
+        const desc = ev.extendedProps.description || '';
+        const tipo = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
+        const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || '-';
+        const contrato = (desc.match(/CONTRATO: (http[^\s]+)/)||[])[1];
         
-        const props = eventObj.extendedProps || {};
-        const desc = props.description || '';
-        
-        // Parse da descrição para pegar campos
-        const cliente = (desc.match(/CLIENTE: (.*)/) || [])[1] || '-';
-        const whats = (desc.match(/WHATSAPP: (.*)/) || [])[1] || '-';
-        const contrato = (desc.match(/CONTRATO: (http[^\s]+)/) || [])[1];
-        
-        let html = `
-            <div class="detail-row"><div class="detail-label">EVENTO</div><div class="detail-value">${eventObj.title}</div></div>
-            <div class="detail-row"><div class="detail-label">CLIENTE</div><div class="detail-value">${cliente}</div></div>
-            <div class="detail-row"><div class="detail-label">DATA</div><div class="detail-value">${new Date(eventObj.start).toLocaleString('pt-BR')}</div></div>
-            <div class="detail-row"><div class="detail-label">WHATSAPP</div><div class="detail-value">${whats}</div></div>
-            <div class="detail-row"><div class="detail-label">LOCAL</div><div class="detail-value">${props.location || '-'}</div></div>
-        `;
-
-        if(contrato) {
-            html += `<div class="detail-row"><div class="detail-label">CONTRATO</div><a href="${contrato}" target="_blank" class="link-contrato">📂 Abrir Contrato</a></div>`;
-        }
-
+        let html = `<p><b>Tipo:</b> ${tipo === 'atendimento' ? '🟢 Atendimento' : '🔴 Bloqueio Total'}</p>
+                    <p><b>Cliente:</b> ${cliente}</p>
+                    <p><b>Data:</b> ${new Date(ev.start).toLocaleString()}</p>`;
+        if(contrato) html += `<p><a href="${contrato}" target="_blank">Abrir Contrato</a></p>`;
         document.getElementById('modalBody').innerHTML = html;
         document.getElementById('detailsModal').classList.add('open');
     }
+    function closeModal() { document.getElementById('detailsModal').classList.remove('open'); }
 
-    function closeModal() {
-        document.getElementById('detailsModal').classList.remove('open');
-        currentEventData = null;
-    }
-
-    // --- EDITAR ---
     function editCurrentEvent() {
-        if(!currentEventData) return;
-        
-        closeModal();
-        switchTab('form');
-        
-        // Preenche o formulário
-        const props = currentEventData.extendedProps || {};
-        const desc = props.description || '';
-
+        closeModal(); switchTab('form');
+        const ev = currentEventData;
+        const desc = ev.extendedProps.description || '';
         document.getElementById('formTitle').innerText = "Editar Evento";
         document.getElementById('acao').value = "editar";
-        document.getElementById('eventoId').value = currentEventData.id;
-        document.getElementById('btnCancelarEdicao').style.display = 'block';
-
-        document.getElementById('titulo').value = currentEventData.title;
-        document.getElementById('cliente').value = (desc.match(/CLIENTE: (.*)/) || [])[1] || '';
-        document.getElementById('whatsapp').value = (desc.match(/WHATSAPP: (.*)/) || [])[1] || '';
+        document.getElementById('eventoId').value = ev.id;
         
-        // Formatar datas para input datetime-local (YYYY-MM-DDTHH:MM)
-        const formatForInput = (d) => {
-            const date = new Date(d);
-            date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-            return date.toISOString().slice(0,16);
-        };
+        // Preenche campos
+        document.getElementById('tipoBloqueio').value = (desc.match(/TIPO: (.*)/)||[])[1] || 'bloqueio';
+        document.getElementById('titulo').value = ev.title;
+        document.getElementById('cliente').value = (desc.match(/CLIENTE: (.*)/)||[])[1] || '';
+        document.getElementById('whatsapp').value = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
+        document.getElementById('obs').value = (desc.match(/OBS: (.*)/s)||[])[1] || '';
         
-        document.getElementById('inicio').value = formatForInput(currentEventData.start);
-        document.getElementById('fim').value = formatForInput(currentEventData.end || currentEventData.start); // fallback
-        
-        document.getElementById('local').value = props.location || '';
-        document.getElementById('contratoUrl').value = (desc.match(/CONTRATO: (http[^\s]+)/) || [])[1] || '';
-        document.getElementById('obs').value = (desc.match(/OBS: (.*)/s) || [])[1] || '';
+        const fmt = d => { const x = new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,16); };
+        document.getElementById('inicio').value = fmt(ev.start);
+        document.getElementById('fim').value = fmt(ev.end || ev.start);
     }
-
+    
     function deleteCurrentEvent() {
-        if(!confirm("Tem certeza que deseja excluir este evento?")) return;
-        
-        const btn = document.querySelector('.btn-delete');
-        const originalText = btn.innerText;
-        btn.innerText = "Excluindo...";
-        btn.disabled = true;
-
-        const payload = {
-            acao: 'excluir',
-            id: currentEventData.id
-        };
-
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
-        .then(res => res.json())
-        .then(resp => {
-            if(resp.status === 'sucesso') {
-                alert('Evento excluído!');
-                closeModal();
-                loadEvents(); // Recarrega tudo
-            } else {
-                alert('Erro: ' + resp.message);
-            }
-        })
-        .finally(() => {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        });
+        if(!confirm("Excluir?")) return;
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({ acao: 'excluir', id: currentEventData.id }) })
+        .then(() => { closeModal(); loadData(); alert("Excluído!"); });
     }
 
-    function resetForm() {
-        document.getElementById('eventoForm').reset();
-        document.getElementById('formTitle').innerText = "Novo Evento";
-        document.getElementById('acao').value = "criar";
-        document.getElementById('eventoId').value = "";
-        document.getElementById('btnCancelarEdicao').style.display = 'none';
-    }
+    function resetForm() { document.getElementById('eventoForm').reset(); document.getElementById('acao').value = "criar"; document.getElementById('formTitle').innerText = "Novo Evento"; }
 
-    // --- ENVIAR FORM (CRIAR OU EDITAR) ---
     function handleFormSubmit(e) {
         e.preventDefault();
-        const btn = document.getElementById('btnSalvar');
-        btn.disabled = true;
-        btn.innerText = "Processando...";
-
+        const btn = document.getElementById('btnSalvar'); btn.innerText = "..."; btn.disabled = true;
         const dados = {
-            acao: document.getElementById('acao').value, // criar ou editar
+            acao: document.getElementById('acao').value,
             id: document.getElementById('eventoId').value,
+            tipoBloqueio: document.getElementById('tipoBloqueio').value,
             titulo: document.getElementById('titulo').value,
             cliente: document.getElementById('cliente').value,
             whatsapp: document.getElementById('whatsapp').value,
@@ -378,29 +203,10 @@
             contratoUrl: document.getElementById('contratoUrl').value,
             obs: document.getElementById('obs').value
         };
-
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(dados)
-        })
-        .then(res => res.json())
-        .then(response => {
-            if(response.status === 'sucesso') {
-                alert(response.msg);
-                resetForm();
-                switchTab('calendar');
-                loadEvents();
-            } else {
-                alert('Erro: ' + response.message);
-            }
-        })
-        .catch(err => alert('Erro de conexão.'))
-        .finally(() => {
-            btn.disabled = false;
-            btn.innerText = "Salvar";
-        });
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(dados) })
+        .then(res => res.json()).then(r => { alert(r.msg); resetForm(); switchTab('calendar'); loadData(); })
+        .finally(() => { btn.innerText = "Salvar"; btn.disabled = false; });
     }
 </script>
-
 </body>
 </html>

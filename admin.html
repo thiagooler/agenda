@@ -19,7 +19,7 @@
         .nav-item.active { color: var(--primary); font-weight: bold; }
         .nav-icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
         
-        /* FORM */
+        /* FORM & FILTROS */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
@@ -27,9 +27,10 @@
         .btn-save { background: var(--primary); color: white; }
         .btn-delete { background: var(--danger); color: white; }
         
-        /* CARDS */
+        /* CARDS DA LISTA */
         .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        
+        .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+
         /* CONFIG DIAS */
         .day-config { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
         .day-config label { color: var(--primary); margin-bottom: 8px; }
@@ -50,6 +51,15 @@
 
     <div id="tab-list" class="tab-content">
         <h2 style="margin-top:0;">Eventos</h2>
+        
+        <div class="filter-bar">
+            <div style="flex: 1;">
+                <label style="font-size:0.8rem; margin-bottom:2px;">Filtrar Mês:</label>
+                <input type="month" id="filterMonth" onchange="renderListView()" style="margin:0; padding:8px;">
+            </div>
+            <button onclick="clearFilter()" style="padding: 10px; background: #eee; border: none; border-radius: 6px; cursor: pointer; height: 100%; align-self: flex-end;">Limpar</button>
+        </div>
+
         <div id="listViewContainer">Carregando...</div>
     </div>
 
@@ -142,7 +152,7 @@
         calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
             initialView: 'dayGridMonth', locale: 'pt-br', height: '100%', headerToolbar: { left: 'title', right: 'prev,next' },
             events: allEvents, 
-            eventClick: info => openModal(info.event) // Passa o evento do calendário
+            eventClick: info => openModal(info.event)
         });
         calendar.render();
     }
@@ -175,29 +185,61 @@
         .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Horários"; btn.disabled = false; });
     }
 
-    function renderListView() {
-        const container = document.getElementById('listViewContainer'); container.innerHTML = "";
-        allEvents.sort((a,b) => new Date(a.start) - new Date(b.start)).forEach(ev => {
-            const div = document.createElement('div'); div.className = 'event-card';
-            div.innerHTML = `<h4>${ev.title}</h4><p>🕒 ${new Date(ev.start).toLocaleString('pt-BR')}</p>`;
-            // CORREÇÃO AQUI: Passamos os dados de forma que openModal entenda
-            div.onclick = () => openModal({ 
-                id: ev.id, 
-                title: ev.title, 
-                start: ev.start, 
-                end: ev.end, 
-                // Simulamos a estrutura do FullCalendar para compatibilidade
-                extendedProps: { description: ev.description, location: ev.location } 
-            });
-            container.appendChild(div);
-        });
+    // --- FUNÇÕES DE LISTA ATUALIZADAS ---
+    function clearFilter() {
+        document.getElementById('filterMonth').value = "";
+        renderListView();
     }
 
-    // --- FUNÇÃO CORRIGIDA ---
+    function renderListView() {
+        const container = document.getElementById('listViewContainer'); 
+        container.innerHTML = "";
+        const filterVal = document.getElementById('filterMonth').value; // Formato "YYYY-MM"
+        const now = new Date();
+
+        // Ordena por data
+        const sorted = allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
+        
+        let hasEvents = false;
+
+        sorted.forEach(ev => {
+            const evDate = new Date(ev.start);
+            const evEnd = new Date(ev.end);
+            
+            // Lógica de Filtro
+            let show = false;
+
+            if (filterVal) {
+                // Se tem filtro de mês, mostra tudo daquele mês (inclusive passado)
+                const evMonthStr = evDate.toISOString().slice(0, 7); // Pega "2024-12"
+                if (evMonthStr === filterVal) show = true;
+            } else {
+                // Se NÃO tem filtro, mostra apenas Futuros
+                if (evEnd >= now) show = true;
+            }
+
+            if (show) {
+                hasEvents = true;
+                const div = document.createElement('div'); div.className = 'event-card';
+                div.innerHTML = `<h4>${ev.title}</h4><p>🕒 ${evDate.toLocaleString('pt-BR')}</p>`;
+                div.onclick = () => openModal({ 
+                    id: ev.id, 
+                    title: ev.title, 
+                    start: ev.start, 
+                    end: ev.end, 
+                    extendedProps: { description: ev.description, location: ev.location } 
+                });
+                container.appendChild(div);
+            }
+        });
+
+        if (!hasEvents) {
+            container.innerHTML = `<p style="text-align:center; color:#888; margin-top:20px;">Nenhum evento encontrado ${filterVal ? 'neste mês' : 'futuramente'}.</p>`;
+        }
+    }
+
     function openModal(ev) {
         currentEventData = ev;
-        
-        // CORREÇÃO: Busca description em extendedProps (Calendar) OU direto no objeto (Lista)
         const props = ev.extendedProps || {};
         const desc = props.description || ev.description || '';
         
@@ -226,7 +268,6 @@
         const ev = currentEventData;
         const props = ev.extendedProps || {};
         const desc = props.description || ev.description || '';
-        
         document.getElementById('formTitle').innerText = "Editar Evento";
         document.getElementById('acao').value = "editar";
         document.getElementById('eventoId').value = ev.id;
@@ -235,7 +276,6 @@
         document.getElementById('cliente').value = (desc.match(/CLIENTE: (.*)/)||[])[1] || '';
         document.getElementById('whatsapp').value = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
         document.getElementById('obs').value = (desc.match(/OBS: (.*)/s)||[])[1] || '';
-        
         const fmt = d => { const x = new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,16); };
         document.getElementById('inicio').value = fmt(ev.start);
         document.getElementById('fim').value = fmt(ev.end || ev.start);

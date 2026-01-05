@@ -19,7 +19,17 @@
         .nav-item.active { color: var(--primary); font-weight: bold; }
         .nav-icon { font-size: 1.2rem; display: block; margin-bottom: 2px; }
         
-        /* FORM & FILTROS */
+        /* FILTROS E BUSCA */
+        .filter-bar { background: white; padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 10px; }
+        .search-row { display: flex; gap: 10px; }
+        
+        input#searchInput { 
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; 
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: 10px center; padding-left: 35px;
+        }
+
+        /* FORMULÁRIO */
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
         input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; }
@@ -27,14 +37,13 @@
         .btn-save { background: var(--primary); color: white; }
         .btn-delete { background: var(--danger); color: white; }
         
-        /* CARDS DA LISTA */
+        /* CARDS */
         .event-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .filter-bar { background: white; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-
+        .card-info { font-size: 0.9rem; color: #666; margin: 3px 0; }
+        
         /* CONFIG DIAS */
         .day-config { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #eee; }
         .day-config label { color: var(--primary); margin-bottom: 8px; }
-        .day-config input { background: #fafafa; }
 
         /* MODAL */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; }
@@ -53,11 +62,12 @@
         <h2 style="margin-top:0;">Eventos</h2>
         
         <div class="filter-bar">
-            <div style="flex: 1;">
-                <label style="font-size:0.8rem; margin-bottom:2px;">Filtrar Mês:</label>
-                <input type="month" id="filterMonth" onchange="renderListView()" style="margin:0; padding:8px;">
+            <input type="text" id="searchInput" oninput="renderListView()" placeholder="Buscar cliente, zap, título...">
+            
+            <div class="search-row">
+                <input type="month" id="filterMonth" onchange="renderListView()" style="flex:1;">
+                <button onclick="clearFilter()" style="padding: 0 15px; background: #eee; border: none; border-radius: 8px; cursor: pointer;">Limpar</button>
             </div>
-            <button onclick="clearFilter()" style="padding: 10px; background: #eee; border: none; border-radius: 6px; cursor: pointer; height: 100%; align-self: flex-end;">Limpar</button>
         </div>
 
         <div id="listViewContainer">Carregando...</div>
@@ -185,43 +195,62 @@
         .then(res => res.json()).then(r => alert(r.msg)).finally(() => { btn.innerText = "Atualizar Horários"; btn.disabled = false; });
     }
 
-    // --- FUNÇÕES DE LISTA ATUALIZADAS ---
     function clearFilter() {
         document.getElementById('filterMonth').value = "";
+        document.getElementById('searchInput').value = "";
         renderListView();
     }
 
+    // --- FUNÇÃO DE LISTA INTELIGENTE (BUSCA + FILTRO) ---
     function renderListView() {
         const container = document.getElementById('listViewContainer'); 
         container.innerHTML = "";
-        const filterVal = document.getElementById('filterMonth').value; // Formato "YYYY-MM"
+        
+        const filterMonth = document.getElementById('filterMonth').value; // YYYY-MM
+        const searchText = document.getElementById('searchInput').value.toLowerCase();
         const now = new Date();
 
         // Ordena por data
         const sorted = allEvents.sort((a,b) => new Date(a.start) - new Date(b.start));
-        
-        let hasEvents = false;
+        let count = 0;
 
         sorted.forEach(ev => {
             const evDate = new Date(ev.start);
             const evEnd = new Date(ev.end);
             
-            // Lógica de Filtro
+            // Dados para busca textual (Título, Descrição, Data Formatada)
+            const fullText = (ev.title + (ev.description || '') + evDate.toLocaleDateString('pt-BR')).toLowerCase();
+            
             let show = false;
 
-            if (filterVal) {
-                // Se tem filtro de mês, mostra tudo daquele mês (inclusive passado)
-                const evMonthStr = evDate.toISOString().slice(0, 7); // Pega "2024-12"
-                if (evMonthStr === filterVal) show = true;
+            if (searchText.length > 0) {
+                // MODO BUSCA: Ignora data, procura texto em tudo (passado e futuro)
+                if (fullText.includes(searchText)) show = true;
             } else {
-                // Se NÃO tem filtro, mostra apenas Futuros
-                if (evEnd >= now) show = true;
+                // MODO PADRÃO: Respeita Filtros de Mês/Futuro
+                if (filterMonth) {
+                    const evMonthStr = evDate.toISOString().slice(0, 7);
+                    if (evMonthStr === filterMonth) show = true;
+                } else {
+                    // Sem filtro de mês: mostra apenas FUTUROS
+                    if (evEnd >= now) show = true;
+                }
             }
 
             if (show) {
-                hasEvents = true;
+                count++;
+                const desc = ev.description || '';
+                const cliente = (desc.match(/CLIENTE: (.*)/)||[])[1] || 'Sem nome';
+                const whatsapp = (desc.match(/WHATSAPP: (.*)/)||[])[1] || '';
+
                 const div = document.createElement('div'); div.className = 'event-card';
-                div.innerHTML = `<h4>${ev.title}</h4><p>🕒 ${evDate.toLocaleString('pt-BR')}</p>`;
+                div.innerHTML = `
+                    <h4>${ev.title}</h4>
+                    <p class="card-info">👤 ${cliente}</p>
+                    <p class="card-info">🕒 ${evDate.toLocaleString('pt-BR')}</p>
+                    ${whatsapp ? `<p class="card-info">📱 ${whatsapp}</p>` : ''}
+                `;
+                
                 div.onclick = () => openModal({ 
                     id: ev.id, 
                     title: ev.title, 
@@ -233,8 +262,8 @@
             }
         });
 
-        if (!hasEvents) {
-            container.innerHTML = `<p style="text-align:center; color:#888; margin-top:20px;">Nenhum evento encontrado ${filterVal ? 'neste mês' : 'futuramente'}.</p>`;
+        if (count === 0) {
+            container.innerHTML = `<p style="text-align:center; color:#888; margin-top:20px;">Nenhum evento encontrado.</p>`;
         }
     }
 
